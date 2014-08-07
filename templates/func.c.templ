@@ -1,0 +1,383 @@
+
+//!
+//! Mock for {{func.name}}
+//!
+
+{### parameters of the function
+ ###}
+{%if (func.params):
+static easymock_param easymock_meta_params_of_{{func.name}}[] =
+{
+    {%for i, p in enumerate(func.params, start=1):
+    {
+        .index = {{i}},
+        .name = "{{p.name}}",
+        .type = "{{p.type}}",
+        .type_basic = "{{p.type_basic}}",
+        .offset = EASYMOCK_MEMBER_OFFSET(
+            easymock_params_of_{{func.name}},
+            {{p.name}}),
+        .size = EASYMOCK_MEMBER_SIZE(
+            easymock_params_of_{{func.name}},
+            {{p.name}}),
+        {%if (p.type_basic.endswith("custom_struct*")):
+        .size_deref = EASYMOCK_MEMBER_SIZE_DEREF(
+            easymock_params_of_{{func.name}},
+            {{p.name}}), %}
+        .fn_match = easymock_match_param_smart,
+        .fn_print = easymock_print_param_smart,
+    },%}
+};
+
+static easymock_params_of_{{func.name}}*
+easymock_create_params_of_{{func.name}}()
+{
+    easymock_params_of_{{func.name}}* _em_p = NULL;
+    _em_p = malloc(sizeof(easymock_params_of_{{func.name}}));
+    memset(_em_p, 0, sizeof(easymock_params_of_{{func.name}}));
+    return _em_p;
+}
+
+static void easymock_assign_params_of_{{func.name}}(
+    easymock_params_of_{{func.name}}* _em_params,
+    {%for p in func.params:
+    {{p.type_name}},%})
+{
+    {%for p in func.params:
+    _em_params->{{p.name}} = ({{p.type_nonconst}}){{p.name}};%}
+}
+%}
+
+{### meta of the function
+ ###}
+static easymock_func easymock_meta_func_of_{{func.name}} =
+{
+    .name = "{{func.name}}",
+     {%if (func.params):
+    .params = easymock_meta_params_of_{{func.name}},
+    .params_size = EASYMOCK_SIZEOF_ARRAY(
+        easymock_meta_params_of_{{func.name}}),
+    %}
+};
+
+easymock_func* easymock_meta_of_{{func.name}}()
+{
+    return &easymock_meta_func_of_{{func.name}};
+}
+
+{### result (return value) of the function
+ ###}
+{%if (func.nonvoid):
+static easymock_result_of_{{func.name}}*
+easymock_create_result_of_{{func.name}}()
+{
+    easymock_result_of_{{func.name}}* _em_result = NULL;
+    _em_result = malloc(sizeof(easymock_result_of_{{func.name}}));
+    memset(_em_result, 0, sizeof(easymock_result_of_{{func.name}}));
+    return _em_result;
+}
+
+static void easymock_assign_result_of_{{func.name}}(
+    easymock_result_of_{{func.name}}* _em_result,
+    easymock_return_type_of_{{func.name}} _em_return_value)
+{
+    _em_result->return_value = _em_return_value;
+}
+%}
+
+{### static call instance of the function
+ ###}
+
+static easymock_call_instance
+easymock_static_call_instance_of_{{func.name}};
+
+static easymock_call_instance*
+easymock_static_ptr_call_instance_of_{{func.name}} = NULL;
+
+{%if (func.params):
+static easymock_params_of_{{func.name}}
+easymock_static_params_expected_of_{{func.name}};
+
+static easymock_params_of_{{func.name}}
+easymock_static_params_received_of_{{func.name}};
+%}
+
+{%if (func.nonvoid):
+static easymock_result_of_{{func.name}}
+easymock_static_result_of_{{func.name}};
+%}
+
+static easymock_call_instance* easymock_new_static_{{func.name}}()
+{
+    easymock_call_instance* ci = NULL;
+    memset(&easymock_static_call_instance_of_{{func.name}}, 0,
+           sizeof(easymock_static_call_instance_of_{{func.name}}));
+    {%if (func.params):
+    memset(&easymock_static_params_expected_of_{{func.name}}, 0,
+           sizeof(easymock_static_params_expected_of_{{func.name}}));
+    memset(&easymock_static_params_received_of_{{func.name}}, 0,
+           sizeof(easymock_static_params_received_of_{{func.name}}));%}
+    ci = &easymock_static_call_instance_of_{{func.name}};
+    {%if (func.params):
+    ci->params_expected =
+        &easymock_static_params_expected_of_{{func.name}};
+    ci->params_received =
+        &easymock_static_params_received_of_{{func.name}};%}
+    {%if (func.nonvoid):
+    ci->result =
+        &easymock_static_result_of_{{func.name}};%}
+    ci->func = &easymock_meta_func_of_{{func.name}};
+    return ci;
+}
+
+static easymock_call_instance* easymock_get_static_{{func.name}}()
+{
+    return easymock_static_ptr_call_instance_of_{{func.name}};
+}
+
+static easymock_call_instance* easymock_new_{{func.name}}()
+{
+    easymock_call_instance* ci = NULL;
+    if (easymock_is_started()) {
+        ci = easymock_call_instance_create();
+        {%if (func.params):
+        ci->params_expected =
+            easymock_create_params_of_{{func.name}}();
+        ci->params_received =
+            easymock_create_params_of_{{func.name}}();%}
+        {%if (func.nonvoid):
+        ci->result =
+            easymock_create_result_of_{{func.name}}();%}
+        ci->func = &easymock_meta_func_of_{{func.name}};
+        easymock_call_instance_push(ci);
+    } else {
+        ci = easymock_new_static_{{func.name}}();
+        easymock_static_ptr_call_instance_of_{{func.name}} = ci;
+    }
+    return ci;
+}
+
+{### ignore/expect and ...
+ ###}
+void easymock_{{"ignore" if func.params else "expect"}}_and_return_{{func.name}}(
+    {%if (func.nonvoid):easymock_return_type_of_{{func.name}} _em_return_value%}{%if (func.void):void%})
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_IGNORE;
+    _em_ci->act_mode = EASYMOCK_ACT_RETURN;
+    {%if (func.nonvoid):
+    easymock_assign_result_of_{{func.name}}(
+        _em_ci->result, _em_return_value);%}
+}
+
+void easymock_{{"ignore" if func.params else "expect"}}_and_callback_{{func.name}}(
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb)
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_IGNORE;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLBACK;
+    _em_ci->fn_callback = _em_fn_callback;
+    _em_ci->arg_callback = _em_arg_cb;
+}
+
+{%if (func.wrap):
+void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name}}(
+    void)
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_IGNORE;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLREAL;
+}
+%}
+
+{%if (func.params):
+{### match and ...
+ ###}
+void easymock_match_and_return_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}},%}{%if (func.nonvoid):,
+    easymock_return_type_of_{{func.name}} _em_return_value%})
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_MATCH;
+    _em_ci->act_mode = EASYMOCK_ACT_RETURN;
+    easymock_assign_params_of_{{func.name}}(
+        _em_ci->params_expected,
+        {%for p in func.params:
+        {{p.name}},%});
+    {%if (func.nonvoid):
+    easymock_assign_result_of_{{func.name}}(
+        _em_ci->result, _em_return_value);%}
+}
+
+void easymock_match_and_callback_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb)
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_MATCH;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLBACK;
+    easymock_assign_params_of_{{func.name}}(
+        _em_ci->params_expected,
+        {%for p in func.params:
+        {{p.name}},%});
+    _em_ci->fn_callback = _em_fn_callback;
+    _em_ci->arg_callback = _em_arg_cb;
+}
+
+{%if (func.wrap):
+void easymock_match_and_callreal_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}},%})
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_MATCH;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLREAL;
+    easymock_assign_params_of_{{func.name}}(
+        _em_ci->params_expected,
+        {%for p in func.params:
+        {{p.name}},%});
+}
+%}
+
+{### check and ...
+ ###}
+void easymock_check_and_return_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch{%if (func.nonvoid):,
+    easymock_return_type_of_{{func.name}} _em_return_value%})
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_CHECK;
+    _em_ci->act_mode = EASYMOCK_ACT_RETURN;
+    _em_ci->fn_check = _em_fn_check;
+    _em_ci->arg_check = _em_arg_ch;
+    {%if (func.nonvoid):
+    easymock_assign_result_of_{{func.name}}(
+        _em_ci->result, _em_return_value);%}
+}
+
+void easymock_check_and_callback_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch,
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb)
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_CHECK;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLBACK;
+    _em_ci->fn_check = _em_fn_check;
+    _em_ci->fn_callback = _em_fn_callback;
+    _em_ci->arg_check = _em_arg_ch;
+    _em_ci->arg_callback = _em_arg_cb;
+}
+
+{%if (func.wrap):
+void easymock_check_and_callreal_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch)
+{
+    easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
+    _em_ci->prm_mode = EASYMOCK_PRM_CHECK;
+    _em_ci->act_mode = EASYMOCK_ACT_CALLREAL;
+    _em_ci->fn_check = _em_fn_check;
+    _em_ci->arg_check = _em_arg_ch;
+}
+%}
+%}
+
+{### Main mock
+ ###}
+{{func.return_type}} {%if (func.wrap):__wrap_%}{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}},%}{%if (not func.params):
+    void%})
+{
+    static char _em_sparams[EASYMOCK_MSG_ERROR_LENGTH_MAX] =
+        "    (no params)\n";
+
+    easymock_call_instance* _em_ci = NULL;
+    int _em_is_unexpected = 0;
+    int _em_is_seq_call = 0;
+
+    // 1) try to get a sequence-configured call instance
+    _em_ci = easymock_call_instance_pop("{{func.name}}");
+    if (_em_ci) {
+        easymock_nb_seq_calls_inc();
+        _em_is_seq_call = 1;
+    } else {
+        // 2) try to get a static-configured call instance
+        _em_ci = easymock_get_static_{{func.name}}();
+        if (_em_ci) {
+            easymock_nb_stc_calls_inc();
+        } else {
+            // 3) get a dummy all-zero static call instance
+            _em_ci = easymock_new_static_{{func.name}}();
+            _em_is_unexpected = easymock_is_started();
+        }
+    }
+    assert(_em_ci);
+
+    {%if (func.params):
+    easymock_assign_params_of_{{func.name}}(
+        _em_ci->params_received,
+        {%for p in func.params:
+        {{p.name}},%});%}
+
+    if (_em_is_unexpected) {
+        {%if (func.params):
+        // print the received params
+        easymock_call_instance_print_params(
+            _em_ci, _em_sparams, sizeof(_em_sparams));
+        %}
+        easymock_error(
+            "%s: Called - UNEXPECTED!\n%s", "{{func.name}}",
+            _em_sparams);
+    } else {
+        if (_em_is_seq_call) {
+            easymock_log("%s: Called - OK\n", "{{func.name}}");
+        }
+
+        {%if (func.params):
+        // === match params
+        if (_em_ci->prm_mode == EASYMOCK_PRM_MATCH) {
+            easymock_call_instance_match_params(_em_ci);
+        }
+        // === check params
+        else if (_em_ci->prm_mode == EASYMOCK_PRM_CHECK) {
+            assert(_em_ci->fn_check);
+            int rc = ((easymock_fn_check_{{func.name}})_em_ci->fn_check)(
+                (easymock_params_of_{{func.name}}*)_em_ci->params_received,
+                _em_ci->arg_check);
+            easymock_call_instance_print_params(
+                _em_ci, _em_sparams, sizeof(_em_sparams));
+            easymock_log(
+                "%s: Check - %s\n%s",
+                "{{func.name}}", (rc == 0) ? "OK" : "FAILED!", _em_sparams);
+        }%}
+        // === call the provided callback
+        if (_em_ci->act_mode == EASYMOCK_ACT_CALLBACK) {
+            assert(_em_ci->fn_callback);
+            {%if (func.nonvoid):return %}((easymock_fn_callback_{{func.name}})
+                _em_ci->fn_callback)(
+                    {%if (func.params):
+                    (easymock_params_of_{{func.name}}*)
+                    _em_ci->params_received, %}
+                    _em_ci->arg_callback);
+        }
+        {%if (func.wrap):
+        // === call the real function
+        if (_em_ci->act_mode == EASYMOCK_ACT_CALLREAL) {
+            {%if (func.nonvoid):return %}__real_{{func.name}}(
+                {%for p in func.params:
+                {{p.name}},%});
+        }%}
+    }
+    {%if (func.nonvoid):
+    // === return the result
+    return ((easymock_result_of_{{func.name}}*)
+            _em_ci->result)->return_value;%}
+}

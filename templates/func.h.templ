@@ -1,0 +1,124 @@
+
+//!
+//! Mock for {{func.name}}
+//!
+
+easymock_func* easymock_meta_of_{{func.name}}(void);
+
+{###
+  if no params:
+      easymock_expect_and_return_FUNC   (return_value)
+      easymock_expect_and_callback_FUNC (callback, arg_cb)
+      easymock_expect_and_callreal_FUNC ()
+
+  if params:
+      easymock_ignore_and_return_FUNC   (return_value)
+      easymock_ignore_and_callback_FUNC (callback, arg_cb)
+      easymock_ignore_and_callreal_FUNC ()
+
+      easymock_match_and_return_FUNC    (p1,..,pN, return_value)
+      easymock_match_and_callback_FUNC  (p1,..,pN, fn_callback, arg_cb)
+      easymock_match_and_callreal_FUNC  (p1,..,pN)
+
+      easymock_check_and_return_FUNC    (fn_check, arg_ch, return_value)
+      easymock_check_and_callback_FUNC  (fn_check, arg_ch, fn_callback, arg_cb)
+      easymock_check_and_callreal_FUNC  (fn_check, arg_ch)
+ ###}
+
+{### parameters of the function
+ ###}
+{%if (func.params):
+typedef struct easymock_params_of_{{func.name}}_tag {
+    {%for p in func.params:
+    {{p.type_name_nonconst}};%}
+} easymock_params_of_{{func.name}};
+%}
+
+{### result (return value) of the function
+ ###}
+{%if (func.nonvoid):
+typedef {{func.return_type}} easymock_return_type_of_{{func.name}};
+
+typedef struct easymock_result_of_{{func.name}}_tag {
+    easymock_return_type_of_{{func.name}} return_value;
+} easymock_result_of_{{func.name}};
+%}
+
+typedef {{func.return_type}} (*easymock_fn_callback_{{func.name}})(
+    {%if (func.params):
+    const easymock_params_of_{{func.name}}*, %}
+    void*);
+
+typedef int (*easymock_fn_check_{{func.name}})(
+    {%if (func.params):
+    const easymock_params_of_{{func.name}}*, %}
+    void*);
+
+{### ignore/expect and ...
+ ###}
+void easymock_{{"ignore" if func.params else "expect"}}_and_return_{{func.name}}(
+    {%if (func.nonvoid):easymock_return_type_of_{{func.name}} _em_return_value%}{%if (func.void):void%});
+
+void easymock_{{"ignore" if func.params else "expect"}}_and_callback_{{func.name}}(
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb);
+
+{%if (func.wrap):
+void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name}}(
+    void);
+%}
+
+{%if (func.params):
+{### match and ...
+ ###}
+void easymock_match_and_return_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}},%}{%if (func.nonvoid):,
+    easymock_return_type_of_{{func.name}} _em_return_value%});
+
+void easymock_match_and_callback_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb);
+
+{%if (func.wrap):
+void easymock_match_and_callreal_{{func.name}}(
+    {%for p in func.params:
+    {{p.type_name}},%});
+%}
+
+{### check and ...
+ ###}
+void easymock_check_and_return_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch{%if (func.nonvoid):,
+    easymock_return_type_of_{{func.name}} _em_return_value%});
+
+void easymock_check_and_callback_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch,
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb);
+
+{%if (func.wrap):
+void easymock_check_and_callreal_{{func.name}}(
+    easymock_fn_check_{{func.name}} _em_fn_check,
+    void* _em_arg_ch);
+%}
+%}
+
+{%if (func.wrap):
+{{func.return_type}} __wrap_{{func.name}}(
+{%for p in func.params:
+    {{p.type_name}},%}{%if (not func.params):    void%});
+
+{{func.return_type}} __real_{{func.name}}(
+{%for p in func.params:
+    {{p.type_name}},%}{%if (not func.params):    void%});
+%}
+
+{###}
+/* Original function declaration:
+{{func.full_decl}};
+*/
