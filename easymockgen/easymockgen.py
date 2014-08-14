@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Copyright (c) 2014, Alexander Korobeynikov
+# https://github.com/alveko/easymock
+# License: BSD
+
 import sys, os, re, collections, argparse
 import tempfile, shutil
 

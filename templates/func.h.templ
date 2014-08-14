@@ -3,6 +3,10 @@
 //! Mock for {{func.name}}
 //!
 
+{%if (func.vargs):
+#include <stdarg.h>
+%}
+
 easymock_func* easymock_meta_of_{{func.name}}(void);
 
 {###
@@ -31,6 +35,9 @@ easymock_func* easymock_meta_of_{{func.name}}(void);
 typedef struct easymock_params_of_{{func.name}}_tag {
     {%for p in func.params:
     {{p.type_name_nonconst}};%}
+    {%if (func.vargs):
+    char* _em_va_formatted;
+    va_list _em_va_list;%}
 } easymock_params_of_{{func.name}};
 %}
 
@@ -63,7 +70,7 @@ void easymock_{{"ignore" if func.params else "expect"}}_and_callback_{{func.name
     easymock_fn_callback_{{func.name}} _em_fn_callback,
     void* _em_arg_cb);
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name}}(
     void);
 %}
@@ -71,6 +78,7 @@ void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name
 {%if (func.params):
 {### match and ...
  ###}
+{%if (not func.vargs):
 void easymock_match_and_return_{{func.name}}(
     {%for p in func.params:
     {{p.type_name}},%}{%if (func.nonvoid):,
@@ -82,10 +90,25 @@ void easymock_match_and_callback_{{func.name}}(
     easymock_fn_callback_{{func.name}} _em_fn_callback,
     void* _em_arg_cb);
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_match_and_callreal_{{func.name}}(
     {%for p in func.params:
     {{p.type_name}},%});
+%}%}
+
+{%if (func.vargs):
+void easymock_match_va_and_return_{{func.name}}({%if (func.nonvoid):
+    easymock_return_type_of_{{func.name}} _em_return_value, %}
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    ...);
+
+void easymock_match_va_and_callback_{{func.name}}(
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb,
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    ...);
 %}
 
 {### check and ...
@@ -101,7 +124,7 @@ void easymock_check_and_callback_{{func.name}}(
     easymock_fn_callback_{{func.name}} _em_fn_callback,
     void* _em_arg_cb);
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_check_and_callreal_{{func.name}}(
     easymock_fn_check_{{func.name}} _em_fn_check,
     void* _em_arg_ch);
@@ -110,12 +133,14 @@ void easymock_check_and_callreal_{{func.name}}(
 
 {%if (func.wrap):
 {{func.return_type}} __wrap_{{func.name}}(
-{%for p in func.params:
-    {{p.type_name}},%}{%if (not func.params):    void%});
+    {%for p in func.params:
+    {{p.type_name}},%}{%if (func.vargs):,
+    ...%}{%if (not func.params):    void%});
 
 {{func.return_type}} __real_{{func.name}}(
-{%for p in func.params:
-    {{p.type_name}},%}{%if (not func.params):    void%});
+    {%for p in func.params:
+    {{p.type_name}},%}{%if (func.vargs):,
+    ...%}{%if (not func.params):    void%});
 %}
 
 {###}

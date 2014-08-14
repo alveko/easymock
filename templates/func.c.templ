@@ -26,7 +26,21 @@ static easymock_param easymock_meta_params_of_{{func.name}}[] =
             {{p.name}}), %}
         .fn_match = easymock_match_param_smart,
         .fn_print = easymock_print_param_smart,
-    },%}
+    },%}{%if (func.vargs):,
+    {
+        .index = {{len(func.params) + 1}},
+        .name = "_em_va_formatted",
+        .type = "char*",
+        .type_basic = "char*",
+        .offset = EASYMOCK_MEMBER_OFFSET(
+            easymock_params_of_{{func.name}},
+            _em_va_formatted),
+        .size = EASYMOCK_MEMBER_SIZE(
+            easymock_params_of_{{func.name}},
+            _em_va_formatted),
+        .fn_match = easymock_match_param_smart,
+        .fn_print = easymock_print_param_smart,
+    }%}
 };
 
 static easymock_params_of_{{func.name}}*
@@ -36,6 +50,16 @@ easymock_create_params_of_{{func.name}}()
     _em_p = malloc(sizeof(easymock_params_of_{{func.name}}));
     memset(_em_p, 0, sizeof(easymock_params_of_{{func.name}}));
     return _em_p;
+}
+
+static void easymock_destroy_params_of_{{func.name}}(
+    void* _em_params)
+{
+    easymock_params_of_{{func.name}}* _em_p = _em_params;
+    {%if (func.vargs):
+    free(_em_p->_em_va_formatted);
+    va_end(_em_p->_em_va_list);%}
+    free(_em_p);
 }
 
 static void easymock_assign_params_of_{{func.name}}(
@@ -57,7 +81,7 @@ static easymock_func easymock_meta_func_of_{{func.name}} =
     .params = easymock_meta_params_of_{{func.name}},
     .params_size = EASYMOCK_SIZEOF_ARRAY(
         easymock_meta_params_of_{{func.name}}),
-    %}
+    .fn_destroy_params = easymock_destroy_params_of_{{func.name}}%}
 };
 
 easymock_func* easymock_meta_of_{{func.name}}()
@@ -181,7 +205,7 @@ void easymock_{{"ignore" if func.params else "expect"}}_and_callback_{{func.name
     _em_ci->arg_callback = _em_arg_cb;
 }
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name}}(
     void)
 {
@@ -194,10 +218,17 @@ void easymock_{{"ignore" if func.params else "expect"}}_and_callreal_{{func.name
 {%if (func.params):
 {### match and ...
  ###}
+{%if (not func.vargs):
 void easymock_match_and_return_{{func.name}}(
     {%for p in func.params:
     {{p.type_name}},%}{%if (func.nonvoid):,
-    easymock_return_type_of_{{func.name}} _em_return_value%})
+    easymock_return_type_of_{{func.name}} _em_return_value%})%}
+{%if (func.vargs):
+void easymock_match_va_and_return_{{func.name}}({%if (func.nonvoid):
+    easymock_return_type_of_{{func.name}} _em_return_value, %}
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    ...)%}
 {
     easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
     _em_ci->prm_mode = EASYMOCK_PRM_MATCH;
@@ -209,13 +240,34 @@ void easymock_match_and_return_{{func.name}}(
     {%if (func.nonvoid):
     easymock_assign_result_of_{{func.name}}(
         _em_ci->result, _em_return_value);%}
+    {%if (func.vargs):
+    {
+        int _em_len = 0;
+        easymock_params_of_{{func.name}}* _em_p =
+            (easymock_params_of_{{func.name}}*)
+            _em_ci->params_expected;
+        va_start(_em_p->_em_va_list, {{func.params[-1].name}});
+        _em_len = vsnprintf(NULL, 0,
+                            {{func.params[-1].name}}, _em_p->_em_va_list);
+        _em_p->_em_va_formatted = malloc(_em_len + 1);
+        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                  {{func.params[-1].name}}, _em_p->_em_va_list);
+    }%}
 }
 
+{%if (not func.vargs):
 void easymock_match_and_callback_{{func.name}}(
     {%for p in func.params:
     {{p.type_name}}, %}
     easymock_fn_callback_{{func.name}} _em_fn_callback,
-    void* _em_arg_cb)
+    void* _em_arg_cb)%}
+{%if (func.vargs):
+void easymock_match_va_and_callback_{{func.name}}(
+    easymock_fn_callback_{{func.name}} _em_fn_callback,
+    void* _em_arg_cb,
+    {%for p in func.params:
+    {{p.type_name}}, %}
+    ...)%}
 {
     easymock_call_instance* _em_ci = easymock_new_{{func.name}}();
     _em_ci->prm_mode = EASYMOCK_PRM_MATCH;
@@ -226,9 +278,22 @@ void easymock_match_and_callback_{{func.name}}(
         {{p.name}},%});
     _em_ci->fn_callback = _em_fn_callback;
     _em_ci->arg_callback = _em_arg_cb;
+    {%if (func.vargs):
+    {
+        int _em_len = 0;
+        easymock_params_of_{{func.name}}* _em_p =
+            (easymock_params_of_{{func.name}}*)
+            _em_ci->params_expected;
+        va_start(_em_p->_em_va_list, {{func.params[-1].name}});
+        _em_len = vsnprintf(NULL, 0,
+                            {{func.params[-1].name}}, _em_p->_em_va_list);
+        _em_p->_em_va_formatted = malloc(_em_len + 1);
+        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                  {{func.params[-1].name}}, _em_p->_em_va_list);
+    }%}
 }
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_match_and_callreal_{{func.name}}(
     {%for p in func.params:
     {{p.type_name}},%})
@@ -275,7 +340,7 @@ void easymock_check_and_callback_{{func.name}}(
     _em_ci->arg_callback = _em_arg_cb;
 }
 
-{%if (func.wrap):
+{%if (func.wrap and not func.vargs):
 void easymock_check_and_callreal_{{func.name}}(
     easymock_fn_check_{{func.name}} _em_fn_check,
     void* _em_arg_ch)
@@ -293,7 +358,8 @@ void easymock_check_and_callreal_{{func.name}}(
  ###}
 {{func.return_type}} {%if (func.wrap):__wrap_%}{{func.name}}(
     {%for p in func.params:
-    {{p.type_name}},%}{%if (not func.params):
+    {{p.type_name}},%}{%if (func.vargs):,
+    ...%}{%if (not func.params):
     void%})
 {
     static char _em_sparams[EASYMOCK_MSG_ERROR_LENGTH_MAX] =
@@ -325,7 +391,20 @@ void easymock_check_and_callreal_{{func.name}}(
     easymock_assign_params_of_{{func.name}}(
         _em_ci->params_received,
         {%for p in func.params:
-        {{p.name}},%});%}
+        {{p.name}},%});
+    {%if (func.vargs):
+    {
+        int _em_len = 0;
+        easymock_params_of_{{func.name}}* _em_p =
+            (easymock_params_of_{{func.name}}*)
+            _em_ci->params_received;
+        va_start(_em_p->_em_va_list, {{func.params[-1].name}});
+        _em_len = vsnprintf(NULL, 0,
+                            {{func.params[-1].name}}, _em_p->_em_va_list);
+        _em_p->_em_va_formatted = malloc(_em_len + 1);
+        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                  {{func.params[-1].name}}, _em_p->_em_va_list);
+    }%}%}
 
     if (_em_is_unexpected) {
         {%if (func.params):
@@ -368,7 +447,7 @@ void easymock_check_and_callreal_{{func.name}}(
                     _em_ci->params_received, %}
                     _em_ci->arg_callback);
         }
-        {%if (func.wrap):
+        {%if (func.wrap and not func.vargs):
         // === call the real function
         if (_em_ci->act_mode == EASYMOCK_ACT_CALLREAL) {
             {%if (func.nonvoid):return %}__real_{{func.name}}(

@@ -1,3 +1,7 @@
+# Copyright (c) 2014, Alexander Korobeynikov
+# https://github.com/alveko/easymock
+# License: BSD
+
 import os
 import re
 from collections import namedtuple
@@ -7,13 +11,11 @@ sys.path.extend(['/ericsson/tools/pycparser'])
 from pycparser import c_parser, c_ast, parse_file, c_generator
 
 FuncDecl = namedtuple('FuncDecl', [ 'name', 'return_type',
-                                    'void', 'nonvoid', 'params', 'wrap',
+                                    'void', 'nonvoid', 'params', 'vargs', 'wrap',
                                     'full_decl', 'file_line' ])
 
-FuncParam = namedtuple('FuncParam', [ 'name',
-                                      'type', 'type_nonconst',
-                                      'type_name', 'type_name_nonconst',
-                                      'type_basic' ])
+FuncParam = namedtuple('FuncParam', [ 'name', 'type', 'type_nonconst',
+                                      'type_name', 'type_name_nonconst', 'type_basic' ])
 
 class FuncDeclVisitor(c_ast.NodeVisitor):
 
@@ -112,16 +114,13 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             fdecl = self.fix_pointer_spaces(cgen.visit_Decl(node))
             fdecl = re.sub(r"([\(,])\s*", r"\1\n    ", fdecl)
 
-            if "..." in fdecl:
-                print("Function ignored (va lists not supported): %s" % (node.name))
-                return
-
             print("Function found: %s" % (node.name))
             func = FuncDecl(name=node.name,
                             return_type=rtype,
                             void=tvoid,
                             nonvoid=(not tvoid),
                             params=[],
+                            vargs=("..." in fdecl),
                             wrap=(self.args.wrap_all or is_wrap),
                             full_decl=fdecl,
                             file_line=str(node.coord.file) + ":" + str(node.coord.line))
@@ -130,12 +129,17 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             if node_funcdecl.args:
                 for i, param in enumerate(node_funcdecl.args.params):
                     type_name = self.fix_pointer_spaces(cgen.visit(param))
-                    if type_name != 'void':
+                    pname = ""
+                    if isinstance(param, c_ast.Decl):
                         pname = param.name
-                        ptype = self.typename_to_type(type_name, param.name)
-
-                        type_nonconst=self.type_to_nonconst_type(ptype)
-                        type_basic=self.type_to_basic_type(ptype)
+                    if isinstance(param, c_ast.Typename) and type_name != 'void':
+                        # name omitted in declaration
+                        pname = " _em_param%d" % (i + 1)
+                        type_name += pname
+                    if pname:
+                        ptype = self.typename_to_type(type_name, pname)
+                        type_nonconst = self.type_to_nonconst_type(ptype)
+                        type_basic = self.type_to_basic_type(ptype)
 
                         if type_basic != "custom_func*":
                             type_name_nonconst="%s %s" % (type_nonconst, pname)

@@ -1,3 +1,7 @@
+//! Copyright (c) 2014, Alexander Korobeynikov
+//! https://github.com/alveko/easymock
+//! License: BSD
+
 #ifndef EASYMOCK_H
 #define EASYMOCK_H
 
@@ -46,10 +50,13 @@ typedef enum {
 } easymock_param_id;
 
 struct easymock_param_tag;
+
 typedef int (*easymock_fn_match_param)
     (const struct easymock_param_tag*, const void*, const void*);
 typedef int (*easymock_fn_print_param)
     (const struct easymock_param_tag*, const void*, char*, size_t);
+typedef void (*easymock_fn_destroy_params)
+    (void*);
 
 typedef struct easymock_param_tag {
     int         index;
@@ -67,6 +74,7 @@ typedef struct easymock_func_tag {
     const char*     name;
     easymock_param* params;
     int             params_size;
+    easymock_fn_destroy_params fn_destroy_params;
 } easymock_func;
 
 typedef enum {

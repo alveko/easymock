@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# Copyright (c) 2014, Alexander Korobeynikov
+# https://github.com/alveko/easymock
+
 import re, datetime
 
 class Template:

@@ -1,3 +1,7 @@
+//! Copyright (c) 2014, Alexander Korobeynikov
+//! https://github.com/alveko/easymock
+//! License: BSD
+
 #include "easymock.h"
 
 #include <stdlib.h>
@@ -511,11 +515,11 @@ void easymock_call_instance_destroy(easymock_call_instance* ci)
 {
     if (ci) {
         if (ci->params_expected) {
-            free(ci->params_expected);
+            ci->func->fn_destroy_params(ci->params_expected);
             ci->params_expected = NULL;
         }
         if (ci->params_received) {
-            free(ci->params_received);
+            ci->func->fn_destroy_params(ci->params_received);
             ci->params_received = NULL;
         }
         if (ci->result) {
