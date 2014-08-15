@@ -13,37 +13,8 @@
 #include <sys/param.h>
 
 //!
-//! Types
+//! easymock list implementation
 //!
-
-struct easymock_node_tag;
-typedef struct easymock_node_tag {
-    struct easymock_node_tag* next;
-    void* data;
-} easymock_node;
-
-typedef struct easymock_list_tag {
-    easymock_node* head;
-    easymock_node* tail;
-    int            size;
-} easymock_list;
-
-typedef void* easymock_iter;
-
-/*
-void  easymock_list_init(easymock_list *list);
-int   easymock_list_size(easymock_list *list);
-int   easymock_list_is_empty(easymock_list *list);
-void* easymock_list_push_tail(easymock_list *list, void* data);
-void* easymock_list_pop_head(easymock_list *list);
-void* easymock_list_head(easymock_list *list);
-void* easymock_list_tail(easymock_list *list);
-
-easymock_iter easymock_list_begin(easymock_iter *list);
-easymock_iter easymock_list_end();
-void* easymock_list_next(easymock_iter* iter);
-void* easymock_list_data(easymock_iter* iter);
-*/
 
 void easymock_list_init(easymock_list *list)
 {
@@ -115,7 +86,7 @@ easymock_iter easymock_list_begin(easymock_list *list)
     return list->head;
 }
 
-easymock_iter easymock_list_end()
+easymock_iter easymock_list_end(void)
 {
     return NULL;
 }
@@ -183,7 +154,7 @@ int easymock_is_started(void)
     return gem.is_started;
 }
 
-int easymock_check()
+int easymock_check(void)
 {
     easymock_call_instance* ci = NULL;
     while ((ci = (easymock_call_instance*)
@@ -264,8 +235,8 @@ int easymock_match_param_memcmp_deref(
                        param->name);
         return -1;
     }
-    const void* dp1 = *((const void**)pp1);
-    const void* dp2 = *((const void**)pp2);
+    const void* dp1 = *((const void* const *)pp1);
+    const void* dp2 = *((const void* const *)pp2);
     if (dp1 == dp2) {
         return 0;
     }
@@ -278,8 +249,9 @@ int easymock_match_param_memcmp_deref(
 int easymock_match_param_strcmp(
     const easymock_param* param, const void* pp1, const void* pp2)
 {
-    const char* cp1 = *((const char**)pp1);
-    const char* cp2 = *((const char**)pp2);
+    const char* cp1 = *((const char* const *)pp1);
+    const char* cp2 = *((const char* const *)pp2);
+    EASYMOCK_UNUSED(param);
     if (cp1 == cp2) {
         return 0;
     }
@@ -334,7 +306,7 @@ static int easymock_print_param_hex_dump(
 {
     size_t i;
     unsigned char ascii[17];
-    const unsigned char* pc = (unsigned char*)mptr;
+    const unsigned char* pc = (const unsigned char*)mptr;
     char* pout = out;
     char prefix[26];
     memset(prefix, ' ', sizeof(prefix));
@@ -381,45 +353,45 @@ int easymock_print_param_smart(
         ri += snprintf(out, out_size, "NULL");
     // int
     } else if (strcmp(param->type_basic, "int") == 0) {
-        ri += snprintf(out, out_size, "%d", *((int*)pval));
+        ri += snprintf(out, out_size, "%d", *((const int*)pval));
     } else if (strcmp(param->type_basic, "unsigned int") == 0) {
-        ri += snprintf(out, out_size, "%u", *((unsigned int*)pval));
+        ri += snprintf(out, out_size, "%u", *((const unsigned int*)pval));
     // short int
     } else if (strcmp(param->type_basic, "short int") == 0) {
-        ri += snprintf(out, out_size, "%hd", *((short int*)pval));
+        ri += snprintf(out, out_size, "%hd", *((const short int*)pval));
     } else if (strcmp(param->type_basic, "unsigned short int") == 0) {
-        ri += snprintf(out, out_size, "%hu", *((unsigned short int*)pval));
+        ri += snprintf(out, out_size, "%hu", *((const unsigned short int*)pval));
     // long int
     } else if (strcmp(param->type_basic, "long int") == 0) {
-        ri += snprintf(out, out_size, "%ld", *((long int*)pval));
+        ri += snprintf(out, out_size, "%ld", *((const long int*)pval));
     } else if (strcmp(param->type_basic, "unsigned long int") == 0) {
-        ri += snprintf(out, out_size, "%lu", *((unsigned long int*)pval));
+        ri += snprintf(out, out_size, "%lu", *((const unsigned long int*)pval));
     // long long int
     } else if (strcmp(param->type_basic, "long long int") == 0) {
-        ri += snprintf(out, out_size, "%lld", *((long long int*)pval));
+        ri += snprintf(out, out_size, "%lld", *((const long long int*)pval));
     } else if (strcmp(param->type_basic, "unsigned long long int") == 0) {
-        ri += snprintf(out, out_size, "%llu", *((unsigned long long int*)pval));
+        ri += snprintf(out, out_size, "%llu", *((const unsigned long long int*)pval));
     // char
     } else if (strcmp(param->type_basic, "signed char") == 0 ||
                strcmp(param->type_basic, "char") == 0) {
-        ri += snprintf(out, out_size, "%hhd", *((char*)pval));
+        ri += snprintf(out, out_size, "%hhd", *((const char*)pval));
     } else if (strcmp(param->type_basic, "unsigned char") == 0) {
-        ri += snprintf(out, out_size, "%hhu", *((unsigned char*)pval));
+        ri += snprintf(out, out_size, "%hhu", *((const unsigned char*)pval));
     // double
     } else if (strcmp(param->type_basic, "double") == 0) {
-        ri += snprintf(out, out_size, "%f", *((double*)pval));
+        ri += snprintf(out, out_size, "%f", *((const double*)pval));
     } else if (strcmp(param->type_basic, "long double") == 0) {
-        ri += snprintf(out, out_size, "%Lf", *((long double*)pval));
+        ri += snprintf(out, out_size, "%Lf", *((const long double*)pval));
     // size_t
     } else if (strcmp(param->type, "size_t") == 0) {
-        ri += snprintf(out, out_size, "%zd", *((size_t*)pval));
+        ri += snprintf(out, out_size, "%zd", *((const size_t*)pval));
     // string (char*)
     } else if (strcmp(param->type_basic, "char*") == 0) {
-        char* cp = *((char**)pval);
+        const char* cp = *((const char* const*)pval);
         ri += snprintf(out, out_size, "char* = %s", (cp) ? cp : "NULL");
     // pointer
     } else if (param->type_basic[strlen(param->type_basic)-1] == '*') {
-        void* dp = *((void**)pval);
+        const void* dp = *((const void* const*)pval);
         char* pout = out;
         pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
                          "ptr = %p", dp);
@@ -446,10 +418,11 @@ int easymock_print_param_int(
     const easymock_param* param, const void* pval, char* out, size_t out_size)
 {
     int ri = 0;
+    EASYMOCK_UNUSED(param);
     if (!pval) {
         ri += snprintf(out, out_size, "NULL");
     } else {
-        ri += snprintf(out, out_size, "%d", *((int*)pval));
+        ri += snprintf(out, out_size, "%d", *((const int*)pval));
     }
     return ri;
 }
@@ -458,10 +431,11 @@ int easymock_print_param_ptr(
     const easymock_param* param, const void* pval, char* out, size_t out_size)
 {
     int ri = 0;
+    EASYMOCK_UNUSED(param);
     if (!pval) {
         ri += snprintf(out, out_size, "NULL");
     } else {
-        ri += snprintf(out, out_size, "%p", *((void**)pval));
+        ri += snprintf(out, out_size, "%p", *((const void* const*)pval));
     }
     return ri;
 }
@@ -470,10 +444,11 @@ int easymock_print_param_str(
     const easymock_param* param, const void* pval, char* out, size_t out_size)
 {
     int ri = 0;
+    EASYMOCK_UNUSED(param);
     if (!pval) {
         ri += snprintf(out, out_size, "NULL");
     } else {
-        char* cp = *((char**)pval);
+        const char* cp = *((const char* const*)pval);
         ri += snprintf(out, out_size, "%s", (cp) ? cp : "NULL");;
     }
     return ri;
@@ -483,27 +458,27 @@ int easymock_print_param_str(
 //! Functions managing call instances
 //!
 
-int easymock_nb_seq_calls_get()
+int easymock_nb_seq_calls_get(void)
 {
     return gem.nb_seq_calls;
 }
 
-int easymock_nb_stc_calls_get()
+int easymock_nb_stc_calls_get(void)
 {
     return gem.nb_stc_calls;
 }
 
-int easymock_nb_seq_calls_inc()
+int easymock_nb_seq_calls_inc(void)
 {
     return ++gem.nb_seq_calls;
 }
 
-int easymock_nb_stc_calls_inc()
+int easymock_nb_stc_calls_inc(void)
 {
     return ++gem.nb_stc_calls;
 }
 
-easymock_call_instance* easymock_call_instance_create()
+easymock_call_instance* easymock_call_instance_create(void)
 {
     easymock_call_instance* ci = NULL;
     ci = malloc(sizeof(easymock_call_instance));
@@ -556,7 +531,7 @@ easymock_call_instance* easymock_call_instance_pop(const char* funcname)
     return ci;
 }
 
-easymock_call_instance* easymock_call_instance_curr()
+easymock_call_instance* easymock_call_instance_curr(void)
 {
     if (gem.is_started) {
         return easymock_list_data(gem.ci_seq_curr);
@@ -564,7 +539,7 @@ easymock_call_instance* easymock_call_instance_curr()
     return NULL;
 }
 
-easymock_call_instance* easymock_call_instance_last()
+easymock_call_instance* easymock_call_instance_last(void)
 {
     if (gem.is_started) {
         return easymock_list_tail(&gem.ci_seq);

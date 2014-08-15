@@ -32,6 +32,8 @@ static int funcname(const void* pval, char* out, size_t out_size) \
 #define EASYMOCK_REAL(x) __real_ ## x
 #define EASYMOCK_WRAP(x) __wrap_ ## x
 
+#define EASYMOCK_UNUSED(x) (void)x;
+
 //!
 //! Types
 //!
@@ -143,14 +145,15 @@ int easymock_print_param_smart(
 //!
 
 // Call instance create/destroy
-easymock_call_instance* easymock_call_instance_create();
+easymock_call_instance* easymock_call_instance_create(void);
 void easymock_call_instance_destroy(easymock_call_instance* ci);
 
 // Call instance push/pop/top/last
 void easymock_call_instance_push(easymock_call_instance* ci);
 easymock_call_instance* easymock_call_instance_pop(const char* funcname);
-easymock_call_instance* easymock_call_instance_top();
-easymock_call_instance* easymock_call_instance_last();
+easymock_call_instance* easymock_call_instance_top(void);
+easymock_call_instance* easymock_call_instance_curr(void);
+easymock_call_instance* easymock_call_instance_last(void);
 
 // Call instance print/match params
 int easymock_call_instance_print_params(
@@ -166,10 +169,10 @@ void easymock_label(const char* label);
 void* easymock_params_get_by_label(const char* label);
 void* easymock_params_get_by_name(const char* label);
 
-int easymock_nb_seq_calls_get();
-int easymock_nb_seq_calls_inc();
-int easymock_nb_stc_calls_inc();
-int easymock_nb_stc_calls_get();
+int easymock_nb_seq_calls_get(void);
+int easymock_nb_seq_calls_inc(void);
+int easymock_nb_stc_calls_inc(void);
+int easymock_nb_stc_calls_get(void);
 
 //!
 //! Auxiliary structs to wrap 2-3 arguments into one
@@ -189,5 +192,34 @@ typedef struct {
 
 em2args* make2args(void* arg1, void* arg2);
 em3args* make3args(void* arg1, void* arg2, void* arg3);
+
+struct easymock_node_tag;
+typedef struct easymock_node_tag {
+    struct easymock_node_tag* next;
+    void* data;
+} easymock_node;
+
+typedef struct easymock_list_tag {
+    easymock_node* head;
+    easymock_node* tail;
+    int            size;
+} easymock_list;
+
+typedef void* easymock_iter;
+
+//! Auxiliary single-linked list
+
+void  easymock_list_init(easymock_list *list);
+int   easymock_list_size(easymock_list *list);
+int   easymock_list_is_empty(easymock_list *list);
+void* easymock_list_push_tail(easymock_list *list, void* data);
+void* easymock_list_pop_head(easymock_list *list);
+void* easymock_list_head(easymock_list *list);
+void* easymock_list_tail(easymock_list *list);
+
+easymock_iter easymock_list_begin(easymock_list *list);
+easymock_iter easymock_list_end(void);
+void* easymock_list_data(easymock_iter iter);
+void* easymock_list_next(easymock_iter* iter);
 
 #endif

@@ -55,12 +55,14 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         return t
 
     def type_to_nonconst_type(self, type):
-        # remove const qualifier from the beginning
-        return re.sub(r"^\s*const\s+", r"", type)
+        # remove const qualifier, keep it for pointers to const though
+        if type.startswith('const') and not type.endswith('*'):
+            return re.sub(r"^const\s+", r"", type)
+        return type
 
     def type_to_basic_type(self, type):
-        # remove const if any
-        type = self.type_to_nonconst_type(type)
+        # remove all "const" from the type
+        type = re.sub(r"const\s+", r"", type)
         # translate into basic type
         def typerepl(m):
             t = m.group(1)
