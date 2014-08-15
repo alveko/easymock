@@ -26,7 +26,3 @@ Mock generator for C
                             (in addition to system locations).
                             If pycparser is not installed in the system,
                             the path to pycparser must be specified in PYTHONPATH.
-
-Copyright (c) 2014 Alexander Korobeynikov<br/>
-(alexander.korobeynikov@gmail.com)<br/>
-https://github.com/alveko/easymock
