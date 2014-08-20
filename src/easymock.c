@@ -323,7 +323,7 @@ static int easymock_print_param_hex_dump(
             pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
                              "%s", prefix);
             pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
-                             "%04x:", i);
+                             "%04zx:", i);
         }
         // the hex code for the specific byte
         pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
@@ -397,7 +397,7 @@ int easymock_print_param_smart(
                          "ptr = %p", dp);
         if (dp && strcmp(param->type_basic, "custom_struct*") == 0) {
             pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
-                             ", size = %d\n", param->size_deref);
+                             ", size = %zd\n", param->size_deref);
             pout += easymock_print_param_hex_dump(
                 dp, param->size_deref, pout,
                 MAX(0, (int)out_size - (pout - out)));
@@ -407,7 +407,7 @@ int easymock_print_param_smart(
     } else {
         char* pout = out;
         pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
-                         "size = %d\n", param->size);
+                         "size = %zd\n", param->size);
         pout += easymock_print_param_hex_dump(
             pval, param->size, pout, MAX(0, (int)out_size - (pout - out)));
         ri += pout - out;
