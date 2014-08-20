@@ -126,7 +126,8 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             if node_funcdecl.args:
                 for i, param in enumerate(node_funcdecl.args.params):
                     type_name = self.fix_pointer_spaces(cgen.visit(param))
-                    if hasattr(param.type, 'quals') and 'const' in param.type.quals:
+                    if (hasattr(param, 'type') and hasattr(param.type, 'quals') and
+                        'const' in param.type.quals):
                         param.type.quals.remove('const')
                     type_name_nonconst = self.fix_pointer_spaces(cgen.visit(param))
 
