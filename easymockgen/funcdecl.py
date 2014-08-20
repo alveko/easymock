@@ -39,8 +39,8 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         super(FuncDeclVisitor, self).visit(self.ast)
 
     def fix_pointer_spaces(self, code):
-        code = re.sub(r" \*", r"*", code)
-        code = re.sub(r"\*([^\*])", r"* \1", code)
+        code = re.sub(r" +\*", r"*", code)
+        code = re.sub(r"\*([^\* ])", r"* \1", code)
         return code
 
     def typename_to_type(self, typename, name):
@@ -49,20 +49,15 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         while t != tprev:
             tprev = t
             t = re.sub(r"^(.+) " + name + r"(.*)\[\]$",
-                       r"\1*" + name + r"\2", tprev)
+                       r"\1* " + name + r"\2", tprev)
         # remove parameter name
         t = re.sub(r"^(.+[^\w])" + name, r"\1", t).strip()
         return t
 
-    def type_to_nonconst_type(self, type):
-        # remove const qualifier, keep it for pointers to const though
-        if type.startswith('const') and not type.endswith('*'):
-            return re.sub(r"^const\s+", r"", type)
-        return type
-
     def type_to_basic_type(self, type):
         # remove all "const" from the type
-        type = re.sub(r"const\s+", r"", type)
+        type = re.sub(r"\bconst\b", r"", type)
+        type = re.sub(r"\s+", r" ", type).strip()
         # translate into basic type
         def typerepl(m):
             t = m.group(1)
@@ -131,25 +126,26 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             if node_funcdecl.args:
                 for i, param in enumerate(node_funcdecl.args.params):
                     type_name = self.fix_pointer_spaces(cgen.visit(param))
-                    pname = ""
+                    if hasattr(param.type, 'quals') and 'const' in param.type.quals:
+                        param.type.quals.remove('const')
+                    type_name_nonconst = self.fix_pointer_spaces(cgen.visit(param))
+
+                    name = ""
                     if isinstance(param, c_ast.Decl):
-                        pname = param.name
+                        name = param.name
                     if isinstance(param, c_ast.Typename) and type_name != 'void':
                         # name omitted in declaration
-                        pname = " _em_param%d" % (i + 1)
-                        type_name += pname
-                    if pname:
-                        ptype = self.typename_to_type(type_name, pname)
-                        type_nonconst = self.type_to_nonconst_type(ptype)
-                        type_basic = self.type_to_basic_type(ptype)
-
+                        name = "_em_param%d" % (i + 1)
+                        type_name += " " + name
+                    if name:
+                        type = self.typename_to_type(type_name, name)
+                        type_nonconst = self.typename_to_type(type_name_nonconst, name)
+                        type_basic = self.type_to_basic_type(type)
                         if type_basic != "custom_func*":
-                            type_name_nonconst="%s %s" % (type_nonconst, pname)
-                        else:
-                            type_name_nonconst=type_name
+                            type_name_nonconst="%s %s" % (type_nonconst, name)
 
-                        fp = FuncParam(name=pname,
-                                       type=ptype,
+                        fp = FuncParam(name=name,
+                                       type=type,
                                        type_nonconst=type_nonconst,
                                        type_name=type_name,
                                        type_name_nonconst=type_name_nonconst,
