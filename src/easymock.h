@@ -193,6 +193,10 @@ typedef struct {
 em2args* make2args(void* arg1, void* arg2);
 em3args* make3args(void* arg1, void* arg2, void* arg3);
 
+//!
+//! Auxiliary single-linked list
+//!
+
 struct easymock_node_tag;
 typedef struct easymock_node_tag {
     struct easymock_node_tag* next;
@@ -207,17 +211,15 @@ typedef struct easymock_list_tag {
 
 typedef void* easymock_iter;
 
-//! Auxiliary single-linked list
+void  easymock_list_init(easymock_list* list);
+int   easymock_list_size(easymock_list* list);
+int   easymock_list_is_empty(easymock_list* list);
+void* easymock_list_push_tail(easymock_list* list, void* data);
+void* easymock_list_pop_head(easymock_list* list);
+void* easymock_list_head(easymock_list* list);
+void* easymock_list_tail(easymock_list* list);
 
-void  easymock_list_init(easymock_list *list);
-int   easymock_list_size(easymock_list *list);
-int   easymock_list_is_empty(easymock_list *list);
-void* easymock_list_push_tail(easymock_list *list, void* data);
-void* easymock_list_pop_head(easymock_list *list);
-void* easymock_list_head(easymock_list *list);
-void* easymock_list_tail(easymock_list *list);
-
-easymock_iter easymock_list_begin(easymock_list *list);
+easymock_iter easymock_list_begin(easymock_list* list);
 easymock_iter easymock_list_end(void);
 void* easymock_list_data(easymock_iter iter);
 void* easymock_list_next(easymock_iter* iter);

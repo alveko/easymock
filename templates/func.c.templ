@@ -428,14 +428,20 @@ void easymock_check_and_callreal_{{func.name}}(
         // === check params
         else if (_em_ci->prm_mode == EASYMOCK_PRM_CHECK) {
             assert(_em_ci->fn_check);
-            int rc = ((easymock_fn_check_{{func.name}})_em_ci->fn_check)(
+            int _em_rc = ((easymock_fn_check_{{func.name}})_em_ci->fn_check)(
                 (easymock_params_of_{{func.name}}*)_em_ci->params_received,
                 _em_ci->arg_check);
             easymock_call_instance_print_params(
                 _em_ci, _em_sparams, sizeof(_em_sparams));
-            easymock_log(
-                "%s: Check - %s\n%s",
-                "{{func.name}}", (rc == 0) ? "OK" : "FAILED!", _em_sparams);
+            if (_em_rc == 0) {
+                easymock_log(
+                    "%s: Check - OK\n%s",
+                    "{{func.name}}", _em_sparams);
+            } else {
+                easymock_error(
+                    "%s: Check - FAILED!\n%s",
+                    "{{func.name}}", _em_sparams);
+            }
         }%}
         // === call the provided callback
         if (_em_ci->act_mode == EASYMOCK_ACT_CALLBACK) {
