@@ -63,6 +63,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             t = m.group(1)
             t = self.typedefs[t] if t in self.typedefs else t
             return t
+        type = re.sub(r"(struct \w+)", typerepl, type)
         type = re.sub(r"(\w+)", typerepl, type)
         if "(*" in type:
             type = "custom_func*"
@@ -70,18 +71,24 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         return self.fix_pointer_spaces(type)
 
     def visit_Typedef(self, node):
-        m = re.match(r"^typedef (.+[^\w])" + node.name + r"$",
-                     self.cgen.visit_Typedef(node), re.DOTALL)
-        if m:
-            tp = m.group(1).strip()
-            if tp.startswith("struct"):
-                self.typedefs[node.name] = "custom_struct"
-            elif tp.startswith("union"):
+        def resolve_struct(struct_name):
+            if struct_name and "struct " + struct_name in self.typedefs:
+                return self.typedefs["struct " + struct_name]
+            return "custom_struct"
+
+        if type(node.type) is c_ast.TypeDecl:
+            if type(node.type.type) is c_ast.Struct:
+                self.typedefs[node.name] = resolve_struct(node.type.type.name)
+            elif type(node.type.type) is c_ast.Union:
                 self.typedefs[node.name] = "custom_union"
-            elif tp.startswith("enum"):
+            elif type(node.type.type) is c_ast.Enum:
                 self.typedefs[node.name] = "int"
             else:
-                self.typedefs[node.name] = self.type_to_basic_type(tp)
+                self.typedefs[node.name] = "complicated_unexpected"
+        elif type(node.type) is c_ast.PtrDecl and \
+             type(node.type.type) is c_ast.TypeDecl and \
+             type(node.type.type.type) is c_ast.Struct:
+            self.typedefs[node.name] = resolve_struct(node.type.type.type.name) + "*"
         elif type(node.type) is c_ast.PtrDecl and \
              type(node.type.type) is c_ast.FuncDecl:
             self.typedefs[node.name] = "custom_func*"
@@ -90,9 +97,15 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         elif type(node.type) is c_ast.ArrayDecl:
             self.typedefs[node.name] = "custom_array*"
         else:
-            self.typedefs[node.name] = "unknown"
+            self.typedefs[node.name] = "complicated"
 
     def visit_Decl(self, node):
+
+        if isinstance(node.type, c_ast.Struct):
+            if node.type.decls:
+                self.typedefs["struct " + node.type.name] = "custom_struct"
+            else:
+                self.typedefs["struct " + node.type.name] = "opaque_struct"
 
         is_funcdelc = (isinstance(node.type, c_ast.FuncDecl) and
                        self.filename in node.coord.file)

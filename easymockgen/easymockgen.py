@@ -51,20 +51,21 @@ class EasyMockGenResourse:
                 self.run_system("%s %s -E %s -o %s" % \
                                 (gcc, cflags, self.header_orig, header_temp))
 
-                self.run_system(("sed " + \
-                                 "-e 's/__attribute__[^(]*((*[^)]*))*//g' " + \
-                                 "-e 's/__asm__[^(]*((*[^)]*))*//g' " + \
-                                 "-e 's/__asm__//g' " + \
-                                 "-e 's/__extension__//g' " + \
-                                 "-e 's/__inline__//g' " + \
-                                 "-e 's/__const /const /g' " + \
-                                 "-e 's/__restrict //g' " + \
-                                 "-e 's/__restrict$//g' " + \
-                                 "-e 's/__restrict,/,/g' " + \
-                                 "-e 's/__builtin_va_list/int/g' " + \
-                                 "%s > %s") %
-                                (header_temp, self.header_prep))
+                sedcmd = ("sed "
+                          "-e 's/__attribute__[^(]*((*[^)]*))*//g' "
+                          "-e 's/__asm__[^(]*((*[^)]*))*//g' "
+                          "-e 's/__asm__//g' "
+                          "-e 's/__extension__//g' "
+                          "-e 's/__inline__//g' "
+                          "-e 's/__inline//g' "
+                          "-e 's/__const /const /g' "
+                          "-e 's/__restrict //g' "
+                          "-e 's/__restrict$//g' "
+                          "-e 's/__restrict,/,/g' "
+                          "-e 's/__builtin_va_list/int/g' "
+                          "%s > %s ")
 
+                self.run_system(sedcmd % (header_temp, self.header_prep))
                 print("Preprocessed header : %s" % self.header_prep)
 
             def generate(self):
