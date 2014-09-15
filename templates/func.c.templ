@@ -26,7 +26,7 @@ static easymock_param easymock_meta_params_of_{{func.name}}[] =
             {{p.name}}), %}
         .fn_match = easymock_match_param_smart,
         .fn_print = easymock_print_param_smart,
-    },%}{%if (func.vargs):,
+    },%}{%if (func.vargs and func.params[-1].type_basic == "char*"):,
     {
         .index = {{len(func.params) + 1}},
         .name = "_em_va_formatted",
@@ -57,7 +57,9 @@ static void easymock_destroy_params_of_{{func.name}}(
 {
     easymock_params_of_{{func.name}}* _em_p = _em_params;
     {%if (func.vargs):
-    free(_em_p->_em_va_formatted);
+    if (_em_p->_em_va_formatted) {
+        free(_em_p->_em_va_formatted);
+    }
     va_end(_em_p->_em_va_list);%}
     free(_em_p);
 }
@@ -242,16 +244,19 @@ void easymock_match_va_and_return_{{func.name}}({%if (func.nonvoid):
         _em_ci->result, _em_return_value);%}
     {%if (func.vargs):
     {
-        int _em_len = 0;
         easymock_params_of_{{func.name}}* _em_p =
             (easymock_params_of_{{func.name}}*)
             _em_ci->params_expected;
         va_start(_em_p->_em_va_list, {{func.params[-1].name}});
-        _em_len = vsnprintf(NULL, 0,
-                            {{func.params[-1].name}}, _em_p->_em_va_list);
-        _em_p->_em_va_formatted = malloc(_em_len + 1);
-        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
-                  {{func.params[-1].name}}, _em_p->_em_va_list);
+        {%if (func.params[-1].type_basic == "char*"):
+        {
+            int _em_len = 0;
+            _em_len = vsnprintf(NULL, 0,
+                                {{func.params[-1].name}}, _em_p->_em_va_list);
+            _em_p->_em_va_formatted = malloc(_em_len + 1);
+            vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                      {{func.params[-1].name}}, _em_p->_em_va_list);
+        }%}
     }%}
 }
 
@@ -280,16 +285,19 @@ void easymock_match_va_and_callback_{{func.name}}(
     _em_ci->arg_callback = _em_arg_cb;
     {%if (func.vargs):
     {
-        int _em_len = 0;
         easymock_params_of_{{func.name}}* _em_p =
             (easymock_params_of_{{func.name}}*)
             _em_ci->params_expected;
         va_start(_em_p->_em_va_list, {{func.params[-1].name}});
-        _em_len = vsnprintf(NULL, 0,
-                            {{func.params[-1].name}}, _em_p->_em_va_list);
-        _em_p->_em_va_formatted = malloc(_em_len + 1);
-        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
-                  {{func.params[-1].name}}, _em_p->_em_va_list);
+        {%if (func.params[-1].type_basic == "char*"):
+        {
+            int _em_len = 0;
+            _em_len = vsnprintf(NULL, 0,
+                                {{func.params[-1].name}}, _em_p->_em_va_list);
+            _em_p->_em_va_formatted = malloc(_em_len + 1);
+            vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                      {{func.params[-1].name}}, _em_p->_em_va_list);
+        }%}
     }%}
 }
 
@@ -394,16 +402,19 @@ void easymock_check_and_callreal_{{func.name}}(
         {{p.name}},%});
     {%if (func.vargs):
     {
-        int _em_len = 0;
         easymock_params_of_{{func.name}}* _em_p =
             (easymock_params_of_{{func.name}}*)
             _em_ci->params_received;
         va_start(_em_p->_em_va_list, {{func.params[-1].name}});
-        _em_len = vsnprintf(NULL, 0,
-                            {{func.params[-1].name}}, _em_p->_em_va_list);
-        _em_p->_em_va_formatted = malloc(_em_len + 1);
-        vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
-                  {{func.params[-1].name}}, _em_p->_em_va_list);
+        {%if (func.params[-1].type_basic == "char*"):
+        {
+            int _em_len = 0;
+            _em_len = vsnprintf(NULL, 0,
+                                {{func.params[-1].name}}, _em_p->_em_va_list);
+            _em_p->_em_va_formatted = malloc(_em_len + 1);
+            vsnprintf(_em_p->_em_va_formatted, _em_len + 1,
+                      {{func.params[-1].name}}, _em_p->_em_va_list);
+        }%}
     }%}%}
 
     if (_em_is_unexpected) {
