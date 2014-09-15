@@ -152,16 +152,35 @@ if __name__ == "__main__":
         epilog=epilog,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument('-f', '--func', metavar='FUNC', type=str,
+    parser.add_argument('--func', metavar='FUNC', type=str,
                         action='append', default=[],
-                        help='generate a mock for a function named FUNC')
+                        help='create a mock for a function named FUNC')
 
-    parser.add_argument('-w', '--wrap', metavar='FUNC', type=str,
+    parser.add_argument('--func-pfx', metavar='FUNC', type=str,
+                        action='append', default=[],
+                        help='create mocks for functions named\n'
+                        'with the prefix FUNC*')
+
+    parser.add_argument('--wrap', metavar='FUNC', type=str,
                         action='append', default=[],
                         help='create __wrap_FUNC mock for a function named FUNC')
 
-    parser.add_argument('-W', '--wrap-all', action='store_true',
+    parser.add_argument('--wrap-pfx', metavar='FUNC', type=str,
+                        action='append', default=[],
+                        help='create __wrap_* mocks for functions\n'
+                        'named with the prefix FUNC*')
+
+    parser.add_argument('--wrap-all', action='store_true',
                         help='create __wrap_* mocks for all functions')
+
+    parser.add_argument('--include', metavar='INCHDR', type=str,
+                        action='append', default=[],
+                        help='generate mocks for functions defined\n'
+                        'in the included header INCHDR')
+
+    parser.add_argument('--include-all', action='store_true',
+                        help='generate mocks for functions defined\n'
+                        'in all included headers')
 
     parser.add_argument('-o', '--outdir', metavar='DIR',
                         action=writable_dir, default='.',
@@ -176,7 +195,7 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--print-ast', action='store_true',
                         help=argparse.SUPPRESS)
 
-    parser.add_argument('headers', type=argparse.FileType(mode='r'), nargs='+',
+    parser.add_argument('header', type=argparse.FileType(mode='r'), nargs='+',
                         help='A header file(s) to generate mocks for')
 
     args = parser.parse_args()
@@ -188,7 +207,7 @@ if __name__ == "__main__":
         parser.print_help()
         exit(1)
 
-    for header in args.headers:
+    for header in args.header:
         with EasyMockGenResourse(args, header.name) as emg:
             emg.preprocess()
             emg.generate()
