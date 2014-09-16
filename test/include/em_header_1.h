@@ -57,36 +57,59 @@ int em_func_enum_2_ptr(Enum2T* e);
 struct Struct1 { int x; };
 int em_func_struct_1(struct Struct1* ptr);
 
-struct Struct2 { int x; };
-typedef struct Struct2 Struct2;
-int em_func_struct_2(Struct2* ptr);
+typedef struct { int x; } Struct2;
+int em_func_struct_2_ptr(Struct2* ptr);
+int em_func_struct_2_ptr_const(const Struct2* ptr);
 
 struct Struct3 { int x; };
-typedef struct Struct3 Struct3T;
-int em_func_struct_3_ptr(Struct3T* ptr);
-int em_func_struct_3_ptr_const(const Struct3T* ptr);
+typedef struct Struct3 Struct3;
+int em_func_struct_3(Struct3* ptr);
 
 struct Struct4 { int x; };
-typedef struct Struct4* Struct4Ptr;
-int em_func_struct_4_ptr(Struct4Ptr ptr);
-int em_func_struct_4_ptr_const(const Struct4Ptr ptr);
+typedef struct Struct4 Struct4T;
+int em_func_struct_4_ptr(Struct4T* ptr);
+int em_func_struct_4_ptr_const(const Struct4T* ptr);
+
+struct Struct5 { int x; };
+typedef struct Struct5* Struct5Ptr;
+int em_func_struct_5_ptr(Struct5Ptr ptr);
+int em_func_struct_5_ptr_const(const Struct5Ptr ptr);
+
+typedef struct Struct6 Struct6T;
+int em_func_struct_6_struct_ptr(struct Struct6* ptr);
+int em_func_struct_6_struct_ptr_const(const struct Struct6* ptr);
+int em_func_struct_6_typedef_ptr(Struct6T* ptr);
+int em_func_struct_6_typedef_ptr_const(const Struct6T* ptr);
+struct Struct6 { int x; };
 
 struct HiddenStruct1;
-int em_func_opaque_1(struct HiddenStruct1* ptr);
+int em_func_opaque_1_ptr(struct HiddenStruct1* ptr);
+int em_func_opaque_1_ptr_const(const struct HiddenStruct1* ptr);
 
-struct HiddenStruct2;
-typedef struct HiddenStruct2 HiddenStruct2;
-int em_func_opaque_2(HiddenStruct2* ptr);
+typedef struct HiddenStruct2Tag HiddenStruct2;
+int em_func_opaque_2_ptr(HiddenStruct2* ptr);
+int em_func_opaque_2_ptr_const(const HiddenStruct2* ptr);
 
 struct HiddenStruct3;
-typedef struct HiddenStruct3 HiddenStruct3T;
-int em_func_opaque_3_ptr(HiddenStruct3T* ptr);
-int em_func_opaque_3_ptr_const(const HiddenStruct3T* ptr);
+typedef struct HiddenStruct3 HiddenStruct3;
+int em_func_opaque_3_ptr(HiddenStruct3* ptr);
+int em_func_opaque_3_ptr_const(const HiddenStruct3* ptr);
 
 struct HiddenStruct4;
-typedef struct HiddenStruct4* HiddenStruct4Ptr;
-int em_func_opaque_4_ptr(HiddenStruct4Ptr ptr);
-int em_func_opaque_4_ptr_const(const HiddenStruct4Ptr ptr);
+typedef struct HiddenStruct4 HiddenStruct4T;
+int em_func_opaque_4_ptr(HiddenStruct4T* ptr);
+int em_func_opaque_4_ptr_const(const HiddenStruct4T* ptr);
+
+struct HiddenStruct5;
+typedef struct HiddenStruct5* HiddenStruct5Ptr;
+int em_func_opaque_5_ptr(HiddenStruct5Ptr ptr);
+int em_func_opaque_5_ptr_const(const HiddenStruct5Ptr ptr);
+
+typedef struct HiddenStruct6 HiddenStruct6T;
+int em_func_opaque_6_struct_ptr(struct HiddenStruct6* ptr);
+int em_func_opaque_6_struct_ptr_const(const struct HiddenStruct6* ptr);
+int em_func_opaque_6_typedef_ptr(HiddenStruct6T* ptr);
+int em_func_opaque_6_typedef_ptr_const(const HiddenStruct6T* ptr);
 
 //! typedefed parameters
 

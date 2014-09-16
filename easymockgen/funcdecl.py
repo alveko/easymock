@@ -2,20 +2,19 @@
 # https://github.com/alveko/easymock
 # License: BSD
 
-import os
-import re
+import os, re, sys
 from collections import namedtuple
-import sys
 
 sys.path.extend(['/ericsson/tools/pycparser'])
 from pycparser import c_parser, c_ast, parse_file, c_generator
 
-FuncDecl = namedtuple('FuncDecl', [ 'name', 'return_type',
-                                    'void', 'nonvoid', 'params', 'vargs', 'wrap',
-                                    'full_decl', 'file_line' ])
+FuncDecl = namedtuple('FuncDecl',
+                      [ 'name', 'return_type', 'void', 'nonvoid',
+                        'params', 'vargs', 'wrap', 'full_decl', 'file_line' ])
 
-FuncParam = namedtuple('FuncParam', [ 'name', 'type', 'type_nonconst',
-                                      'type_name', 'type_name_nonconst', 'type_basic' ])
+FuncParam = namedtuple('FuncParam',
+                       [ 'name', 'type', 'type_nonconst', 'type_name',
+                         'type_name_nonconst', 'type_basic' ])
 
 class FuncDeclVisitor(c_ast.NodeVisitor):
 
@@ -36,7 +35,12 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
 
         # parse and visit functions
         self.ast = parse_file(self.fileprep)
-        super(FuncDeclVisitor, self).visit(self.ast)
+
+        self.savefuncs = False
+        self.visit(self.ast)
+
+        self.savefuncs = True
+        self.visit(self.ast)
 
     def fix_pointer_spaces(self, code):
         code = re.sub(r" +\*", r"*", code)
@@ -54,124 +58,144 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         t = re.sub(r"^(.+[^\w])" + name, r"\1", t).strip()
         return t
 
+    def put_type(self, tname, ttype, overwrite=True):
+        if not tname in self.typedefs or overwrite:
+            self.typedefs[tname] = ttype
+
+    def get_type(self, tname):
+        if tname in self.typedefs:
+            return self.typedefs[tname]
+        else:
+            return tname
+
     def type_to_basic_type(self, type):
         # remove all "const" from the type
         type = re.sub(r"\bconst\b", r"", type)
         type = re.sub(r"\s+", r" ", type).strip()
+
         # translate into basic type
         def typerepl(m):
-            t = m.group(1)
-            t = self.typedefs[t] if t in self.typedefs else t
-            return t
+            return self.get_type(m.group(1))
+
         type = re.sub(r"(struct \w+)", typerepl, type)
+        type = re.sub(r"(union \w+)", typerepl, type)
         type = re.sub(r"(\w+)", typerepl, type)
+
         if "(*" in type:
-            type = "custom_func*"
+            type = "function*"
         # fix pointers and return
         return self.fix_pointer_spaces(type)
 
-    def visit_Typedef(self, node):
+    def visit_NS(self, node, ns):
+        stype = ("custom_" if node.decls else "opaque_") + ns
+        if node.name:
+            sname = ns + " " + node.name
+            self.put_type(sname, stype, node.decls)
+            return self.get_type(sname)
+        else:
+            return stype
 
-        def resolve_struct(struct_name):
-            if struct_name and "struct " + struct_name in self.typedefs:
-                return self.typedefs["struct " + struct_name]
-            return "custom_struct"
+    def visit_Struct(self, node):
+        return self.visit_NS(node, "struct")
+
+    def visit_Union(self, node):
+        return self.visit_NS(node, "union")
+
+    def visit_Typedef(self, node):
+        self.generic_visit(node)
 
         def resolve_typedecl(node):
-            if type(node.type) is c_ast.Struct:
-                return resolve_struct(node.type.name)
-            elif type(node.type) is c_ast.Union:
-                return "custom_union"
-            elif type(node.type) is c_ast.Enum:
+            if isinstance(node.type, c_ast.Struct):
+                return self.visit_Struct(node.type)
+            elif isinstance(node.type, c_ast.Union):
+                return self.visit_Union(node.type)
+            elif isinstance(node.type, c_ast.Enum):
                 return "int"
             else:
-                st = self.cgen.visit(node.type)
-                return self.typedefs[st] if st in self.typedefs else st
+                return self.get_type(self.cgen.visit(node.type))
 
-        if type(node.type) is c_ast.TypeDecl:
-            self.typedefs[node.name] = resolve_typedecl(node.type)
-        elif type(node.type) is c_ast.PtrDecl and \
-             type(node.type.type) is c_ast.TypeDecl:
-            self.typedefs[node.name] = resolve_typedecl(node.type.type) + "*"
+        if isinstance(node.type, c_ast.TypeDecl):
+            self.put_type(node.name, resolve_typedecl(node.type))
+
+        elif isinstance(node.type, c_ast.PtrDecl) and \
+             isinstance(node.type.type, c_ast.TypeDecl):
+            self.put_type(node.name, resolve_typedecl(node.type.type) + "*")
+
         else:
-            self.typedefs[node.name] = "unresolved"
+            self.put_type(node.name, "unresolved")
 
     def visit_Decl(self, node):
+        self.generic_visit(node)
+        if isinstance(node.type, c_ast.FuncDecl) and self.savefuncs:
+            self.handle_FuncDecl(node)
 
-        if isinstance(node.type, c_ast.Struct):
-            if node.type.decls:
-                self.typedefs["struct " + node.type.name] = "custom_struct"
-            else:
-                self.typedefs["struct " + node.type.name] = "opaque_struct"
+    def handle_FuncDecl(self, node):
+        func_name = node.name
 
-        if isinstance(node.type, c_ast.FuncDecl):
+        cond_func = (not self.args.func and not self.args.func_pfx or
+                     func_name in self.args.func or
+                     [ pfx for pfx in self.args.func_pfx
+                       if func_name.startswith(pfx) ] )
 
-            cond_func = (not self.args.func and not self.args.func_pfx or
-                         node.name in self.args.func or
-                         [ pfx for pfx in self.args.func_pfx
-                           if node.name.startswith(pfx) ] )
+        cond_wrap = (func_name in self.args.wrap or self.args.wrap_all or
+                    [ pfx for pfx in self.args.wrap_pfx
+                      if func_name.startswith(pfx) ] )
 
-            cond_wrap = (node.name in self.args.wrap or self.args.wrap_all or
-                         [ pfx for pfx in self.args.wrap_pfx
-                           if node.name.startswith(pfx) ] )
+        cond_file = (self.args.include_all or
+                     os.path.basename(node.coord.file) in self.args.include or
+                     os.path.basename(node.coord.file) == self.filename)
 
-            cond_file = (self.args.include_all or
-                         os.path.basename(node.coord.file) in self.args.include or
-                         os.path.basename(node.coord.file) == self.filename)
+        if (cond_file and (cond_func or cond_wrap)):
 
-            if (cond_file and (cond_func or cond_wrap)):
-                self.new_FuncDecl(node, cond_wrap)
+            # get rid of possible "extern" qualifiers
+            node.storage = []
 
-    def new_FuncDecl(self, node, cond_wrap):
-        # get rid of possible "extern" qualifiers
-        node.storage = []
-        cgen = c_generator.CGenerator()
-        node_funcdecl = node.type
+            file_line = str(node.coord.file) + ":" + str(node.coord.line)
+            type_name = self.fix_pointer_spaces(self.cgen.visit_Typename(node.type))
+            rtrn_type = self.typename_to_type(type_name, func_name)
+            full_decl = self.fix_pointer_spaces(self.cgen.visit_Decl(node))
+            full_decl = re.sub(r"([\(,])\s*", r"\1\n    ", full_decl)
 
-        type_name = self.fix_pointer_spaces(cgen.visit_Typename(node_funcdecl))
-        rtype = self.typename_to_type(type_name, node.name)
-        tvoid = (rtype == 'void')
-        fdecl = self.fix_pointer_spaces(cgen.visit_Decl(node))
-        fdecl = re.sub(r"([\(,])\s*", r"\1\n    ", fdecl)
+            print("Function found: %s" % (func_name))
+            func = FuncDecl(name        = func_name,
+                            return_type = rtrn_type,
+                            void        = (rtrn_type == 'void'),
+                            nonvoid     = (rtrn_type != 'void'),
+                            params      = [],
+                            vargs       = ("..." in full_decl),
+                            wrap        = cond_wrap,
+                            full_decl   = full_decl,
+                            file_line   = file_line)
+            self.funcdecls.append(func)
 
-        print("Function found: %s" % (node.name))
-        func = FuncDecl(name=node.name,
-                        return_type=rtype,
-                        void=tvoid,
-                        nonvoid=(not tvoid),
-                        params=[],
-                        vargs=("..." in fdecl),
-                        wrap=cond_wrap,
-                        full_decl=fdecl,
-                        file_line=str(node.coord.file) + ":" + str(node.coord.line))
-        self.funcdecls.append(func)
+            if node.type.args:
+                for i, param in enumerate(node.type.args.params):
 
-        if node_funcdecl.args:
-            for i, param in enumerate(node_funcdecl.args.params):
-                type_name = self.fix_pointer_spaces(cgen.visit(param))
-                if (hasattr(param, 'type') and hasattr(param.type, 'quals') and
-                    'const' in param.type.quals):
-                    param.type.quals.remove('const')
-                type_name_nonconst = self.fix_pointer_spaces(cgen.visit(param))
+                    ptype_name = self.fix_pointer_spaces(self.cgen.visit(param))
+                    if (hasattr(param, 'type') and \
+                        hasattr(param.type, 'quals') and 'const' in param.type.quals):
+                        param.type.quals.remove('const')
+                    ptype_name_nonconst = \
+                        self.fix_pointer_spaces(self.cgen.visit(param))
 
-                name = ""
-                if isinstance(param, c_ast.Decl):
-                    name = param.name
-                if isinstance(param, c_ast.Typename) and type_name != 'void':
-                    # name omitted in declaration
-                    name = "_em_param%d" % (i + 1)
-                    type_name += " " + name
-                if name:
-                    type = self.typename_to_type(type_name, name)
-                    type_nonconst = self.typename_to_type(type_name_nonconst, name)
-                    type_basic = self.type_to_basic_type(type)
-                    if type_basic != "custom_func*":
-                        type_name_nonconst="%s %s" % (type_nonconst, name)
+                    pname = ""
+                    if isinstance(param, c_ast.Decl):
+                        pname = param.name
+                    if isinstance(param, c_ast.Typename) and ptype_name != 'void':
+                        # name omitted in declaration
+                        pname = "_em_param%d" % (i + 1)
+                        ptype_name += " " + pname
 
-                    fp = FuncParam(name=name,
-                                   type=type,
-                                   type_nonconst=type_nonconst,
-                                   type_name=type_name,
-                                   type_name_nonconst=type_name_nonconst,
-                                   type_basic=type_basic)
-                    func.params.append(fp)
+                    if pname:
+                        ptype          = self.typename_to_type(ptype_name, pname)
+                        ptype_nonconst = self.typename_to_type(ptype_name_nonconst, pname)
+                        ptype_basic    = self.type_to_basic_type(ptype)
+                        if ptype_basic != "function*":
+                            ptype_name_nonconst="%s %s" % (ptype_nonconst, pname)
+
+                        fp = FuncParam(name = pname, type = ptype,
+                                       type_nonconst      = ptype_nonconst,
+                                       type_name          = ptype_name,
+                                       type_name_nonconst = ptype_name_nonconst,
+                                       type_basic         = ptype_basic)
+                        func.params.append(fp)
