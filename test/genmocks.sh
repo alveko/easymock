@@ -15,6 +15,7 @@ echo "EASYMOCK_GCC    = $EASYMOCK_GCC"
 echo "EASYMOCK_CFLAGS = $EASYMOCK_CFLAGS"
 
 rm -f $TEST/mocks/*
+mkdir $TEST/mocks
 
 $EASYMOCKGEN -o mocks include/em_header_1.h
 $EASYMOCKGEN -o mocks include/em_header_2.h

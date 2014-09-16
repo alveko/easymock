@@ -1,1 +1,3 @@
 *.pyc
+test/mocks/*
+test/test
