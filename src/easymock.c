@@ -267,7 +267,7 @@ int easymock_match_param_smart(
     int rc = 0;
     if (strcmp(param->type_basic, "char*") == 0) {
         rc = easymock_match_param_strcmp(param, pp1, pp2);
-    } else if (strcmp(param->type_basic, "custom_struct*") == 0) {
+    } else if (param->size_deref) {
         rc = easymock_match_param_memcmp_deref(param, pp1, pp2);
     } else {
         rc = easymock_match_param_memcmp(param, pp1, pp2);
@@ -395,7 +395,7 @@ int easymock_print_param_smart(
         char* pout = out;
         pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
                          "ptr = %p", dp);
-        if (dp && strcmp(param->type_basic, "custom_struct*") == 0) {
+        if (dp && param->size_deref) {
             pout += snprintf(pout, MAX(0, (int)out_size - (pout - out)),
                              ", size = %zd\n", param->size_deref);
             pout += easymock_print_param_hex_dump(
