@@ -1,4 +1,4 @@
 *.o
 *.pyc
-test/mocks/*
+test/mocks*
 test/test

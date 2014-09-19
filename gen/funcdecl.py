@@ -10,7 +10,8 @@ from pycparser import c_parser, c_ast, parse_file, c_generator
 
 FuncDecl = namedtuple('FuncDecl',
                       [ 'name', 'return_type', 'void', 'nonvoid',
-                        'params', 'vargs', 'wrap', 'full_decl', 'file_line' ])
+                        'params', 'vargs', 'wrap',
+                        'full_decl', 'file_line' ])
 
 FuncParam = namedtuple('FuncParam',
                        [ 'name', 'type', 'type_nonconst', 'type_name',
@@ -52,7 +53,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
         t, tprev = typename, ""
         while t != tprev:
             tprev = t
-            t = re.sub(r"^(.+) " + name + r"(.*)\[\]$",
+            t = re.sub(r"^(.+) " + name + r"(.*)\[\d*\]$",
                        r"\1* " + name + r"\2", tprev)
         # remove parameter name
         t = re.sub(r"^(.+[^\w])" + name, r"\1", t).strip()
@@ -145,7 +146,9 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
                      os.path.basename(node.coord.file) in self.args.include or
                      os.path.basename(node.coord.file) == self.filename)
 
-        if (cond_file and (cond_func or cond_wrap)):
+        if (cond_file and (cond_func or cond_wrap) and
+            not filter(lambda x: x.name == (self.args.name_pfx + func_name),
+                       self.funcdecls)):
 
             # get rid of possible "extern" qualifiers
             node.storage = []
@@ -157,7 +160,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             full_decl = re.sub(r"([\(,])\s*", r"\1\n    ", full_decl)
 
             print("Function found: %s" % (func_name))
-            func = FuncDecl(name        = func_name,
+            func = FuncDecl(name        = self.args.name_pfx + func_name,
                             return_type = rtrn_type,
                             void        = (rtrn_type == 'void'),
                             nonvoid     = (rtrn_type != 'void'),
@@ -166,6 +169,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
                             wrap        = cond_wrap,
                             full_decl   = full_decl,
                             file_line   = file_line)
+
             self.funcdecls.append(func)
 
             if node.type.args:

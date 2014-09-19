@@ -15,19 +15,13 @@
 #define EASYMOCK_MSG_PARAM_LENGTH_MAX  (4096)
 #define EASYMOCK_MSG_ERROR_LENGTH_MAX  (EASYMOCK_MSG_PARAM_LENGTH_MAX * 10)
 
-#define EASYMOCK_SIZEOF_ARRAY(a)       (sizeof(a)/sizeof(a[0]))
-
+#define EASYMOCK_SIZEOF_ARRAY(a)                 (sizeof(a)/sizeof(a[0]))
 #define EASYMOCK_MEMBER_OFFSET(type, member)     offsetof(type, member)
 #define EASYMOCK_MEMBER_SIZE(type, member)       sizeof(((type*)0)->member)
 #define EASYMOCK_MEMBER_SIZE_DEREF(type, member) sizeof(*(((type*)0)->member))
 
-#define EASYMOCK_DEFINE_PRINT_PARAM_FUNC(funcname, param_type, param_format) \
-static int funcname(const void* pval, char* out, size_t out_size) \
-{ \
-    return snprintf(out, out_size, param_format, *((param_type*)pval)); \
-}
-
-#define EASYMOCK_ABORTIF(x, ...) { if (x) { easymock_log(__VA_ARGS__); abort(); } }
+#define EASYMOCK_ABORTIF(x, ...) \
+    { if (x) { easymock_log(__VA_ARGS__); abort(); } }
 
 #define EASYMOCK_REAL(x) __real_ ## x
 #define EASYMOCK_WRAP(x) __wrap_ ## x
@@ -57,7 +51,7 @@ typedef int (*easymock_fn_match_param)
     (const struct easymock_param_tag*, const void*, const void*);
 typedef int (*easymock_fn_print_param)
     (const struct easymock_param_tag*, const void*, char*, size_t);
-typedef void (*easymock_fn_destroy_params)
+typedef void (*easymock_fn_destroy)
     (void*);
 
 typedef struct easymock_param_tag {
@@ -76,7 +70,9 @@ typedef struct easymock_func_tag {
     const char*     name;
     easymock_param* params;
     int             params_size;
-    easymock_fn_destroy_params fn_destroy_params;
+
+    easymock_fn_destroy fn_destroy_params;
+    easymock_fn_destroy fn_destroy_result;
 } easymock_func;
 
 typedef enum {
@@ -101,6 +97,7 @@ typedef struct easymock_call_instance_tag {
     void* params_expected;
     void* params_received;
     void* result;
+
     void* fn_callback;
     void* fn_check;
     void* arg_callback;

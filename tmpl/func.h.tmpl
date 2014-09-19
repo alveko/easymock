@@ -3,6 +3,11 @@
 //! Mock for {{func.name}}
 //!
 
+{###}
+/* Original function declaration:
+{{func.full_decl}};
+*/
+
 {%if (func.vargs):
 #include <stdarg.h>
 %}
@@ -142,8 +147,3 @@ void easymock_check_and_callreal_{{func.name}}(
     {{p.type_name}},%}{%if (func.vargs):,
     ...%}{%if (not func.params):    void%});
 %}
-
-{###}
-/* Original function declaration:
-{{func.full_decl}};
-*/

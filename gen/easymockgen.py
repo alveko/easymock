@@ -39,33 +39,22 @@ class EasyMockGenResourse:
             def preprocess(self):
                 if self.args.no_preprocess:
                     return
-                print("\n=== Preprocessing header : %s" % self.header_orig)
+
                 gcc = os.environ.get('EASYMOCK_GCC')
                 cflags = os.environ.get('EASYMOCK_CFLAGS')
+
+                self.header_prep = ("%s/%s") % (self.tempdir, self.header_base)
+
+                incext = os.path.realpath(os.path.dirname(__file__) +
+                                          "/../src/easymock_ext.h")
+
+                print("\n=== Preprocessing header : %s" % self.header_orig)
                 print("EASYMOCK_GCC = %s" % gcc)
                 print("EASYMOCK_CFLAGS = %s" % cflags)
 
-                self.header_prep = ("%s/%s") % (self.tempdir, self.header_base)
-                header_temp = ("%s/%s.temp") % (self.tempdir, self.header_base)
-
-                self.run_system("%s %s -E %s -o %s" % \
-                                (gcc, cflags, self.header_orig, header_temp))
-
-                sedcmd = ("sed "
-                          "-e 's/__attribute__[^(]*((*[^)]*))*//g' "
-                          "-e 's/__asm__[^(]*((*[^)]*))*//g' "
-                          "-e 's/__asm__//g' "
-                          "-e 's/__extension__//g' "
-                          "-e 's/__inline__//g' "
-                          "-e 's/__inline//g' "
-                          "-e 's/__const /const /g' "
-                          "-e 's/__restrict //g' "
-                          "-e 's/__restrict$//g' "
-                          "-e 's/__restrict,/,/g' "
-                          "-e 's/__builtin_va_list/int/g' "
-                          "%s > %s ")
-
-                self.run_system(sedcmd % (header_temp, self.header_prep))
+                self.run_system("%s %s -include %s -E %s -o %s" % \
+                                (gcc, cflags, incext,
+                                 self.header_orig, self.header_prep))
                 print("Preprocessed header : %s" % self.header_prep)
 
             def generate(self):
@@ -86,12 +75,12 @@ class EasyMockGenResourse:
                 if fdv.funcdecls:
                     HFile = collections.namedtuple('File', ['name', 'funcs'])
                     file = HFile(name=self.header_base, funcs=fdv.funcdecls)
-                    os.chdir(scriptdir + "/../templates")
+                    os.chdir(scriptdir + "/../tmpl")
                     print("Generating %s" % (self.filemock_h))
-                    self.mockh = Template("file.h.templ")
+                    self.mockh = Template("file.h.tmpl")
                     self.mockh.render({'file': file})
                     print("Generating %s" % (self.filemock_c))
-                    self.mockc = Template("file.c.templ")
+                    self.mockc = Template("file.c.tmpl")
                     self.mockc.render({'file': file})
                 else:
                     print("No function declarations found in %s" % (self.header_base))
@@ -185,6 +174,9 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--outdir', metavar='DIR',
                         action=writable_dir, default='.',
                         help='output directory (by default "%(default)s" is used)')
+
+    parser.add_argument('--name-pfx', metavar='FUNC', type=str, default='',
+                        help=argparse.SUPPRESS)
 
     parser.add_argument('--no-preprocess', action='store_true',
                         help=argparse.SUPPRESS)

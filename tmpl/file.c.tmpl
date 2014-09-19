@@ -6,5 +6,5 @@
 #include <assert.h>
 
 {%for func in file.funcs:
-{{Template("func.c.templ").render(locals()).out}}
+{{Template("func.c.tmpl").render(locals()).out}}
 %}

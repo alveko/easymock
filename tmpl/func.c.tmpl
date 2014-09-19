@@ -70,7 +70,7 @@ static void easymock_assign_params_of_{{func.name}}(
     {{p.type_name}},%})
 {
     {%for p in func.params:
-    _em_params->{{p.name}} = ({{p.type_nonconst}}){{p.name}};%}
+    memcpy(&_em_params->{{p.name}}, &{{p.name}}, sizeof({{p.type_nonconst}}));%}
 }
 %}
 

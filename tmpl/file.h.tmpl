@@ -7,7 +7,7 @@
 #include "{{file.name}}"
 
 {%for func in file.funcs:
-{{Template("func.h.templ").render(locals()).out}}
+{{Template("func.h.tmpl").render(locals()).out}}
 %}
 
 #endif
