@@ -23,3 +23,4 @@ $(EXE): $(OBJ)
 
 clean:
 	rm -f $(EXE) $(OBJ)
+	rm -rf mocks
