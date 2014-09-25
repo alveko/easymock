@@ -20,6 +20,7 @@
 #define EASYMOCK_MEMBER_SIZE(type, member)       sizeof(((type*)0)->member)
 #define EASYMOCK_MEMBER_SIZE_DEREF(type, member) sizeof(*(((type*)0)->member))
 
+#define EASYMOCK_CHECKIF(x) ((x) ? 0 : 1)
 #define EASYMOCK_ABORTIF(x, ...) \
     { if (x) { easymock_log(__VA_ARGS__); abort(); } }
 
@@ -149,7 +150,7 @@ void easymock_call_instance_destroy(easymock_call_instance* ci);
 void easymock_call_instance_push(easymock_call_instance* ci);
 easymock_call_instance* easymock_call_instance_pop(const char* funcname);
 easymock_call_instance* easymock_call_instance_top(void);
-easymock_call_instance* easymock_call_instance_curr(void);
+easymock_call_instance* easymock_call_instance_next(void);
 easymock_call_instance* easymock_call_instance_last(void);
 
 // Call instance print/match params

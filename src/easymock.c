@@ -36,7 +36,6 @@ void* easymock_list_push_tail(easymock_list *list, void* data)
     void* data_old_tail = NULL;
     easymock_node* new_tail = malloc(sizeof(easymock_node));
     memset(new_tail, 0, sizeof(easymock_node));
-    assert(data);
     new_tail->data = data;
     if (list->tail) {
         data_old_tail = list->tail->data;
@@ -114,7 +113,8 @@ void* easymock_list_data(easymock_iter iter)
 
 typedef struct {
     easymock_list ci_seq;
-    easymock_iter ci_seq_curr;
+    easymock_iter ci_seq_prev;
+    easymock_iter ci_seq_next;
     easymock_list errors;
     int           nb_seq_calls;
     int           nb_stc_calls;
@@ -133,6 +133,8 @@ static easymock gem;
 
 void easymock_start(void)
 {
+    easymock_stop();
+    memset(&gem, 0, sizeof(gem));
     gem.is_started = 1;
 }
 
@@ -158,7 +160,7 @@ int easymock_check(void)
 {
     easymock_call_instance* ci = NULL;
     while ((ci = (easymock_call_instance*)
-            easymock_list_next(&gem.ci_seq_curr)) != NULL) {
+            easymock_list_next(&gem.ci_seq_next)) != NULL) {
         easymock_error("Expected, but not called: %s\n", ci->func->name);
     }
     return easymock_list_size(&gem.errors);
@@ -511,8 +513,8 @@ void easymock_call_instance_push(easymock_call_instance* ci)
     if (gem.is_started) {
         easymock_list_push_tail(&gem.ci_seq, ci);
         if (easymock_list_size(&gem.ci_seq) == 1) {
-            // the first ci was just added => set ci_seq_curr
-            gem.ci_seq_curr = easymock_list_begin(&gem.ci_seq);
+            // the first ci was just added => set ci_seq_next
+            gem.ci_seq_next = easymock_list_begin(&gem.ci_seq);
         }
     }
 }
@@ -521,9 +523,14 @@ easymock_call_instance* easymock_call_instance_pop(const char* funcname)
 {
     easymock_call_instance* ci = NULL;
     if (gem.is_started) {
-        ci = easymock_list_data(gem.ci_seq_curr);
+        if (!gem.ci_seq_next && gem.ci_seq_prev) {
+            gem.ci_seq_next = gem.ci_seq_prev;
+            easymock_list_next(&gem.ci_seq_next);
+        }
+        ci = easymock_list_data(gem.ci_seq_next);
         if (ci && strcmp(ci->func->name, funcname) == 0) {
-            easymock_list_next(&gem.ci_seq_curr);
+            gem.ci_seq_prev = gem.ci_seq_next;
+            easymock_list_next(&gem.ci_seq_next);
         } else {
             ci = NULL;
         }
@@ -531,10 +538,10 @@ easymock_call_instance* easymock_call_instance_pop(const char* funcname)
     return ci;
 }
 
-easymock_call_instance* easymock_call_instance_curr(void)
+easymock_call_instance* easymock_call_instance_next(void)
 {
     if (gem.is_started) {
-        return easymock_list_data(gem.ci_seq_curr);
+        return easymock_list_data(gem.ci_seq_next);
     }
     return NULL;
 }
