@@ -133,8 +133,11 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
     def handle_FuncDecl(self, node):
         func_name = node.name
 
-        cond_func = (not self.args.func and not self.args.func_pfx or
-                     func_name in self.args.func or
+        self.args.func_all = (self.args.func_all or
+                              not self.args.func and not self.args.func_pfx and
+                              not self.args.wrap and not self.args.wrap_pfx)
+
+        cond_func = (func_name in self.args.func or self.args.func_all or
                      [ pfx for pfx in self.args.func_pfx
                        if func_name.startswith(pfx) ] )
 

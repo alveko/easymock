@@ -150,6 +150,9 @@ if __name__ == "__main__":
                         help='create mocks for functions named\n'
                         'with the prefix FUNC*')
 
+    parser.add_argument('--func-all', action='store_true',
+                        help='create mocks for all functions (default)')
+
     parser.add_argument('--wrap', metavar='FUNC', type=str,
                         action='append', default=[],
                         help='create __wrap_FUNC mock for a function named FUNC')
