@@ -18,13 +18,14 @@ Mock generator for C
       --func FUNC           create a mock for a function named FUNC
       --func-pfx FUNC       create mocks for functions named
                             with the prefix FUNC*
+      --func-all            create mocks for all functions (default)
       --wrap FUNC           create __wrap_FUNC mock for a function named FUNC
-      --wrap-pfx FUNC       create __wrap_FUNC* mocks for functions
+      --wrap-pfx FUNC       create __wrap_* mocks for functions
                             named with the prefix FUNC*
       --wrap-all            create __wrap_* mocks for all functions
-      --include INCHDR      generate mocks for functions declared
+      --include INCHDR      generate mocks for functions defined
                             in the included header INCHDR
-      --include-all         generate mocks for functions declared
+      --include-all         generate mocks for functions defined
                             in all included headers
       -o DIR, --outdir DIR  output directory (by default "." is used)
 
