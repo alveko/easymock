@@ -57,10 +57,11 @@ static void easymock_destroy_params_of_{{func.name}}(
 {
     easymock_params_of_{{func.name}}* _em_p = _em_params;
     {%if (func.vargs):
+    va_end(_em_p->_em_va_list);
+    {%if (func.params[-1].type_basic == "char*"):
     if (_em_p->_em_va_formatted) {
         free(_em_p->_em_va_formatted);
-    }
-    va_end(_em_p->_em_va_list);%}
+    }%}%}
     free(_em_p);
 }
 

@@ -41,8 +41,9 @@ typedef struct easymock_params_of_{{func.name}}_tag {
     {%for p in func.params:
     {{p.type_name_nonconst}};%}
     {%if (func.vargs):
-    char* _em_va_formatted;
-    va_list _em_va_list;%}
+    va_list _em_va_list;
+    {%if (func.params[-1].type_basic == "char*"):
+    char* _em_va_formatted;%}%}
 } easymock_params_of_{{func.name}};
 %}
 
