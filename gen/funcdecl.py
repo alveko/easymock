@@ -150,7 +150,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
                      os.path.basename(node.coord.file) == self.filename)
 
         if (cond_file and (cond_func or cond_wrap) and
-            not filter(lambda x: x.name == (self.args.name_pfx + func_name),
+            not filter(lambda x: x.name == (self.args.add_func_pfx + func_name),
                        self.funcdecls)):
 
             # get rid of possible "extern" qualifiers
@@ -163,7 +163,7 @@ class FuncDeclVisitor(c_ast.NodeVisitor):
             full_decl = re.sub(r"([\(,])\s*", r"\1\n    ", full_decl)
 
             print("Function found: %s" % (func_name))
-            func = FuncDecl(name        = self.args.name_pfx + func_name,
+            func = FuncDecl(name        = self.args.add_func_pfx + func_name,
                             return_type = rtrn_type,
                             void        = (rtrn_type == 'void'),
                             nonvoid     = (rtrn_type != 'void'),

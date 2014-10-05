@@ -20,15 +20,27 @@ class EasyMockGenResourse:
             def __init__(self, args, header):
                 self.args = args
                 self.header_orig = header
-                self.header_prep = header
-                self.header_base = os.path.basename(header)
-                self.header_name = re.sub(r"\.[\w]+$", r"", self.header_base)
+                self.header_file = os.path.basename(header)
+
+                # try to locate the header in -I paths
+                if not os.path.isfile(self.header_orig):
+                    for x in os.environ.get('EASYMOCK_CFLAGS').split():
+                        if x.startswith("-I"):
+                            inc_header = "%s/%s" % (x[2:], header)
+                            if os.path.isfile(inc_header):
+                                self.header_orig = inc_header
+                                self.header_file = header
+                if not os.path.isfile(self.header_orig):
+                    raise Exception("ERROR: Cannot read: %s" % self.header_orig)
+
+                self.header_prep = self.header_orig
+                self.header_name = re.sub(r"\.[\w]+$", r"", self.header_file)
+                self.header_name = re.sub(r"/", r"_", self.header_name)
                 self.filemock_h = ("mock_%s.h") % (self.header_name)
                 self.filemock_c = ("mock_%s.c") % (self.header_name)
                 self.tempdir = tempfile.mkdtemp(prefix='easymock.')
                 self.mockh = None
                 self.mockc = None
-                pass
 
             def run_system(self, cmd):
                 print(cmd)
@@ -39,12 +51,10 @@ class EasyMockGenResourse:
             def preprocess(self):
                 if self.args.no_preprocess:
                     return
-
                 gcc = os.environ.get('EASYMOCK_GCC')
                 cflags = os.environ.get('EASYMOCK_CFLAGS')
-
-                self.header_prep = ("%s/%s") % (self.tempdir, self.header_base)
-
+                self.header_prep = \
+                    "%s/%s" % (self.tempdir, os.path.basename(self.header_file))
                 incext = os.path.realpath(os.path.dirname(__file__) +
                                           "/../src/easymock_ext.h")
 
@@ -58,23 +68,25 @@ class EasyMockGenResourse:
                 print("Preprocessed header : %s" % self.header_prep)
 
             def generate(self):
-                print("=== Generating mocks for %s" % self.header_base)
-                header_prep_full = os.path.realpath(self.header_prep)
+                print("=== Generating mocks for %s" % self.header_file)
                 cwd_stored = os.getcwd()
                 scriptdir = os.path.dirname(os.path.realpath(__file__))
 
                 print("Parsing file...")
                 os.chdir(self.tempdir)
                 fdv = FuncDeclVisitor(self.args)
-                fdv.parse(header_prep_full)
+                fdv.parse(os.path.realpath(self.header_prep))
 
                 if self.args.print_ast:
                     # pprint(v.funcdecls)
                     fdv.ast.show(attrnames=True, nodenames=True)
 
                 if fdv.funcdecls:
-                    HFile = collections.namedtuple('File', ['name', 'funcs'])
-                    file = HFile(name=self.header_base, funcs=fdv.funcdecls)
+                    HFile = collections.namedtuple(
+                        'File', ['name', 'incl', 'funcs'])
+                    file = HFile(name=self.header_name,
+                                 incl=self.header_file,
+                                 funcs=fdv.funcdecls)
                     os.chdir(scriptdir + "/../tmpl")
                     print("Generating %s" % (self.filemock_h))
                     self.mockh = Template("file.h.tmpl")
@@ -83,7 +95,7 @@ class EasyMockGenResourse:
                     self.mockc = Template("file.c.tmpl")
                     self.mockc.render({'file': file})
                 else:
-                    print("No function declarations found in %s" % (self.header_base))
+                    print("No function declarations found in %s" % (self.header_file))
 
                 # restore cwd
                 os.chdir(cwd_stored)
@@ -145,10 +157,10 @@ if __name__ == "__main__":
                         action='append', default=[],
                         help='create a mock for a function named FUNC')
 
-    parser.add_argument('--func-pfx', metavar='FUNC', type=str,
+    parser.add_argument('--func-pfx', metavar='FPFX', type=str,
                         action='append', default=[],
                         help='create mocks for functions named\n'
-                        'with the prefix FUNC*')
+                        'with the prefix FPFX*')
 
     parser.add_argument('--func-all', action='store_true',
                         help='create mocks for all functions (default)')
@@ -157,10 +169,10 @@ if __name__ == "__main__":
                         action='append', default=[],
                         help='create __wrap_FUNC mock for a function named FUNC')
 
-    parser.add_argument('--wrap-pfx', metavar='FUNC', type=str,
+    parser.add_argument('--wrap-pfx', metavar='WPFX', type=str,
                         action='append', default=[],
                         help='create __wrap_* mocks for functions\n'
-                        'named with the prefix FUNC*')
+                        'named with the prefix WPFX*')
 
     parser.add_argument('--wrap-all', action='store_true',
                         help='create __wrap_* mocks for all functions')
@@ -178,8 +190,11 @@ if __name__ == "__main__":
                         action=writable_dir, default='.',
                         help='output directory (by default "%(default)s" is used)')
 
-    parser.add_argument('--name-pfx', metavar='FUNC', type=str, default='',
-                        help=argparse.SUPPRESS)
+    parser.add_argument('--add-func-pfx', metavar='PFX', type=str, default='',
+                        help='Add PFX to the names of mock functions generated')
+
+    #parser.add_argument('--add-file-pfx', metavar='PFX', type=str, default='',
+    #                    help='Add PFX to the names of files generated')
 
     parser.add_argument('--no-preprocess', action='store_true',
                         help=argparse.SUPPRESS)
@@ -190,7 +205,7 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--print-ast', action='store_true',
                         help=argparse.SUPPRESS)
 
-    parser.add_argument('header', type=argparse.FileType(mode='r'), nargs='+',
+    parser.add_argument('header', type=str, nargs='+', default=[],
                         help='A header file(s) to generate mocks for')
 
     args = parser.parse_args()
@@ -203,7 +218,7 @@ if __name__ == "__main__":
         exit(1)
 
     for header in args.header:
-        with EasyMockGenResourse(args, header.name) as emg:
+        with EasyMockGenResourse(args, header) as emg:
             emg.preprocess()
             emg.generate()
             emg.save()
