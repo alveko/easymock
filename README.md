@@ -11,7 +11,7 @@ Mock generator for C
     Generates mocks for functions found in the specified header file(s).
     The purpose of the mock functions is provide implementation for the functions
     that are covered with unit tests.
-                                                                                                  x
+
     For example, foo.c file has a number of functions fooX(...). The foo.c file includes some
     headers (for example, bar.h) and the functions barX(...) from those headers are called from
     fooX(...). In order to unit test foo.c and all functions in it, the mock (or stub)
