@@ -22,29 +22,29 @@ Mock generator for C
     For every function found in a header file it generates a mock implementation with the same
     prototype as the original one.
     
-    For a function without parameters having the prototype `return_type barX(void);`,
+    For a function without parameters having the prototype
+        return_type barX(void);
     the following functions will be generated to configure the mock behavior:
     
-    void easymock_expect_and_return_barX   (return_type return_value);
-    void easymock_expect_and_callback_barX (fn_callback callback_ptr, void* arg_callback);
-    void easymock_expect_and_callreal_barX ();
+        void easymock_expect_and_return_barX   (return_type return_value);
+        void easymock_expect_and_callback_barX (fn_callback callback_ptr, void* arg_callback);
+        void easymock_expect_and_callreal_barX ();
     
-    For a function with parameters like `return_type barX(ptype1 p1, ..., ptypeN pN);`,
+    For a function with parameters and the prototype
+        return_type barX(ptype1 p1, ..., ptypeN pN);
     the following functions will be generated to configure the mock behavior:
     
-    void easymock_ignore_and_return_barX   (return_type return_value);
-    void easymock_ignore_and_callback_barX (fn_callback callback_ptr, void* arg_callback);
-    void easymock_ignore_and_callreal_barX ();
-
-    void easymock_match_and_return_barX    (ptype1 p1, ..., ptype1 pN, return_type return_value);
-    void easymock_match_and_callback_barX  (ptype1 p1, ..., ptype1 pN, 
-                                            fn_callback callback_ptr, void* arg_callback);
-    void easymock_match_and_callreal_barX  (ptype1 p1, ..., ptype1 pN);
-
-    void easymock_check_and_return_barX    (fn_check check_ptr, void* arg_check, return_value);
-    void easymock_check_and_callback_barX  (fn_check check_ptr, void* arg_check, 
-                                            fn_callback callback_ptr, void* arg_callback);
-    void easymock_check_and_callreal_barX  (fn_check check_ptr, void* arg_check);
+        void easymock_ignore_and_return_barX   (return_type return_value);
+        void easymock_ignore_and_callback_barX (fn_callback callback_ptr, void* arg_callback);
+        void easymock_ignore_and_callreal_barX ();
+        void easymock_match_and_return_barX    (ptype1 p1, ..., ptype1 pN, return_type return_value);
+        void easymock_match_and_callback_barX  (ptype1 p1, ..., ptype1 pN, 
+                                                fn_callback callback_ptr, void* arg_callback);
+        void easymock_match_and_callreal_barX  (ptype1 p1, ..., ptype1 pN);
+        void easymock_check_and_return_barX    (fn_check check_ptr, void* arg_check, return_value);
+        void easymock_check_and_callback_barX  (fn_check check_ptr, void* arg_check, 
+                                                fn_callback callback_ptr, void* arg_callback);
+        void easymock_check_and_callreal_barX  (fn_check check_ptr, void* arg_check);
     
     positional arguments:
       header                A header file(s) to generate mocks for
